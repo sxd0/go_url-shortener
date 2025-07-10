@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"encoding/json"
 	"fmt"
 	"go/test-http/configs"
 	"net/http"
@@ -30,6 +31,8 @@ func (handler *AuthHandler) Login() http.HandlerFunc {
 			Token: "123",
 		}
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(201)
+		json.NewEncoder(w).Encode(res)
 	}
 }
 
