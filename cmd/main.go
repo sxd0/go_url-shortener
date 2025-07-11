@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go/test-http/configs"
 	"go/test-http/internal/auth"
+	"go/test-http/internal/link"
 	"go/test-http/pkg/db"
 	"net/http"
 )
@@ -18,6 +19,7 @@ func main() {
 	auth.NewAuthHandler(router, auth.AuthHandlerDeps{
 		Config: conf,
 	})
+	link.NewLinkHandler(router, link.LinkHandlerDeps{})
 
 	server := http.Server{
 		Addr:    ":8081",

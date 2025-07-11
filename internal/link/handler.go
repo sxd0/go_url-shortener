@@ -2,28 +2,21 @@ package link
 
 import (
 	"fmt"
-	"go/test-http/configs"
-	"go/test-http/pkg/req"
-	"go/test-http/pkg/res"
 	"net/http"
 )
 
 type LinkHandlerDeps struct {
-	*configs.Config
 }
 
 type LinkHandler struct {
-	*configs.Config
 }
 
 func NewLinkHandler(router *http.ServeMux, deps LinkHandlerDeps) {
-	handler := &LinkHandler{
-		Config: deps.Config,
-	}
+	handler := &LinkHandler{}
 	router.HandleFunc("POST /link", handler.Create())
 	router.HandleFunc("PATCH /link/{id}", handler.Update())
 	router.HandleFunc("DELETE /link/{id}", handler.Delete())
-	router.HandleFunc("GET /link{alias}", handler.GoTo())
+	router.HandleFunc("GET /{hash}", handler.GoTo())
 }
 
 func (handler *LinkHandler) Create() http.HandlerFunc {
@@ -39,7 +32,8 @@ func (handler *LinkHandler) Update() http.HandlerFunc {
 }
 func (handler *LinkHandler) Delete() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
+		id := r.PathValue("id")
+		fmt.Println(id)
 	}
 }
 func (handler *LinkHandler) GoTo() http.HandlerFunc {
