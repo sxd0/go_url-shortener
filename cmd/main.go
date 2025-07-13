@@ -13,6 +13,8 @@ import (
 	"net/http"
 )
 
+
+
 func main() {
 	conf := configs.LoadConfig()
 
@@ -47,6 +49,8 @@ func main() {
 		Config:         conf,
 	})
 
+	go statService.AddClick()
+	
 	// Middlewares
 	stack := middleware.Chain(
 		middleware.CORS,
@@ -57,8 +61,6 @@ func main() {
 		Addr:    ":8081",
 		Handler: stack(router),
 	}
-
-	go statService.AddClick()
 
 	fmt.Println("Server is listening on port :8081")
 	server.ListenAndServe()

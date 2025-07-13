@@ -1,16 +1,16 @@
 package stat
 
 import (
-	"fmt"
 	"go/test-http/configs"
 	"go/test-http/pkg/middleware"
+	"go/test-http/pkg/res"
 	"net/http"
 	"time"
 )
 
 const (
-	FilterByDay = "day"
-	FilterByMonth = "month"
+	GroupByDay   = "day"
+	GroupByMonth = "month"
 )
 
 type StatHandlerDeps struct {
@@ -19,12 +19,12 @@ type StatHandlerDeps struct {
 }
 
 type StatHandler struct {
-	LinkRepository *StatRepository
+	StatRepository *StatRepository
 }
 
 func NewStatHandler(router *http.ServeMux, deps StatHandlerDeps) {
 	handler := &StatHandler{
-		LinkRepository: deps.StatRepository,
+		StatRepository: deps.StatRepository,
 	}
 
 	router.Handle("GET /stat", middleware.IsAuthed(handler.GetStat(), deps.Config))
@@ -37,16 +37,17 @@ func (h *StatHandler) GetStat() http.HandlerFunc {
 			http.Error(w, "Invalid from param", http.StatusBadRequest)
 			return
 		}
-		to, err := time.Parse("2006-01-02", r.URL.Query().Get("from"))
+		to, err := time.Parse("2006-01-02", r.URL.Query().Get("to"))
 		if err != nil {
 			http.Error(w, "Invalid to param", http.StatusBadRequest)
 			return
 		}
 		by := r.URL.Query().Get("by")
-		if by != FilterByDay && by != FilterByMonth {
+		if by != GroupByDay && by != GroupByMonth {
 			http.Error(w, "Invalid to param", http.StatusBadRequest)
 			return
 		}
-		fmt.Println(from, to, by)
+		stats := h.StatRepository.GetStats(by, from, to)
+		res.Json(w, stats, 200)
 	}
 }
