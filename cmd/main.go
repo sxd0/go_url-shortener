@@ -5,9 +5,9 @@ import (
 	"go/test-http/configs"
 	"go/test-http/internal/auth"
 	"go/test-http/internal/link"
-	"go/test-http/internal/stat"
 	"go/test-http/internal/user"
 	"go/test-http/pkg/db"
+	"go/test-http/pkg/event"
 	"go/test-http/pkg/middleware"
 	"net/http"
 )
@@ -17,11 +17,12 @@ func main() {
 
 	db := db.NewDb(conf)
 	router := http.NewServeMux()
+	eventBus := event.NewEventBus()
 
 	// Repositories
 	linkRepository := link.NewLinkRepository(db)
 	userRepository := user.NewUserRepository(db)
-	statRepository := stat.NewStatRepository(db)
+	// statRepository := stat.NewStatRepository(db)
 
 	// Services
 	authService := auth.NewAuthService(userRepository)
@@ -33,8 +34,8 @@ func main() {
 	})
 	link.NewLinkHandler(router, link.LinkHandlerDeps{
 		LinkRepository: linkRepository,
-		StatRepository: statRepository,
 		Config:         conf,
+		EventBus:       eventBus,
 	})
 
 	// Middlewares
