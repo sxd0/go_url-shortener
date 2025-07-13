@@ -17,6 +17,18 @@ func NewAuthService(userRepository *user.UserRepository) *AuthService {
 	}
 }
 
+func (service *AuthService) Login(email, password string) (string, error) {
+	existedUser, _ := service.UserRepository.FindByEmail(email)
+	if existedUser == nil {
+		return "", errors.New(ErrWrongCredentials)
+	}
+	err := bcrypt.CompareHashAndPassword([]byte(existedUser.Password), []byte(password))
+	if err != nil {
+		return "", errors.New(ErrWrongCredentials)
+	}
+	return existedUser.Email, nil
+}
+
 func (service *AuthService) Register(email, password, name string) (string, error) {
 	existedUser, _ := service.UserRepository.FindByEmail(email)
 	if existedUser != nil {
