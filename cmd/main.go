@@ -6,6 +6,7 @@ import (
 	"go/test-http/internal/auth"
 	"go/test-http/internal/link"
 	"go/test-http/pkg/db"
+	"go/test-http/pkg/middleware"
 	"net/http"
 )
 
@@ -28,7 +29,7 @@ func main() {
 
 	server := http.Server{
 		Addr:    ":8081",
-		Handler: router,
+		Handler: middleware.Logging(router),
 	}
 
 	fmt.Println("Server is listening on port :8081")
