@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"go/test-http/internal/link"
+	"go/test-http/internal/user"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -16,9 +17,10 @@ func main() {
 		panic(err)
 	}
 	fmt.Println("DSN:", os.Getenv("DSN"))
+	fmt.Println("Migrations is access")
 	db, err := gorm.Open(postgres.Open(os.Getenv("DSN")), &gorm.Config{})
 	if err != nil {
 		panic(err)
 	}
-	db.AutoMigrate(&link.Link{})
+	db.AutoMigrate(&link.Link{}, &user.User{})
 }
