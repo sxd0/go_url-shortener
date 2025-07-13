@@ -1,6 +1,7 @@
 package link
 
 import (
+	"fmt"
 	"go/test-http/configs"
 	"go/test-http/pkg/middleware"
 	"go/test-http/pkg/req"
@@ -55,6 +56,10 @@ func (handler *LinkHandler) Create() http.HandlerFunc {
 
 func (handler *LinkHandler) Update() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		email, ok := r.Context().Value(middleware.ContextEmailKey).(string)
+		if ok {
+			fmt.Println(email)
+		}
 		body, err := req.HandleBody[LinkUpdateRequest](&w, r)
 		if err != nil {
 			return
