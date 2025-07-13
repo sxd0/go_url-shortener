@@ -5,6 +5,7 @@ import (
 	"go/test-http/configs"
 	"go/test-http/internal/auth"
 	"go/test-http/internal/link"
+	"go/test-http/internal/user"
 	"go/test-http/pkg/db"
 	"go/test-http/pkg/middleware"
 	"net/http"
@@ -18,10 +19,15 @@ func main() {
 
 	// Repositories
 	linkRepository := link.NewLinkRepository(db)
+	userRepository := user.NewUserRepository(db)
+
+	// Services
+	authService := auth.NewAuthService(userRepository)
 
 	// Handler
 	auth.NewAuthHandler(router, auth.AuthHandlerDeps{
-		Config: conf,
+		Config:      conf,
+		AuthService: authService,
 	})
 	link.NewLinkHandler(router, link.LinkHandlerDeps{
 		LinkRepository: linkRepository,
