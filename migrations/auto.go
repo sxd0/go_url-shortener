@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"go/test-http/internal/link"
+	"go/test-http/internal/stat"
 	"go/test-http/internal/user"
 	"os"
 
@@ -22,5 +23,5 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	db.AutoMigrate(&link.Link{}, &user.User{})
+	db.AutoMigrate(&link.Link{}, &user.User{}, &stat.Stat{})
 }
