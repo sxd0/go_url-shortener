@@ -1,0 +1,8 @@
+**/vendor
+**/node_modules
+**/pgdata
+.git
+README.md
+Dockerfile
+docker-compose.yml
+.env

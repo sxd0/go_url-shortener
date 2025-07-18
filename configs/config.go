@@ -8,12 +8,8 @@ import (
 )
 
 type Config struct {
-	Db DbConfig
+	Db *Db
 	Auth AuthConfig
-}
-
-type DbConfig struct {
-	Dsn string
 }
 
 type AuthConfig struct {
@@ -21,13 +17,13 @@ type AuthConfig struct {
 }
 
 func LoadConfig() *Config {
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("Error loading .env file, using default config")
-	}
 	return &Config{
-		Db: DbConfig{
-			Dsn: os.Getenv("DSN"),
+		Db: &Db{
+			Host:     os.Getenv("DB_HOST"),
+			Port:     os.Getenv("DB_PORT"),
+			User:     os.Getenv("DB_USER"),
+			Password: os.Getenv("DB_PASSWORD"),
+			Name:     os.Getenv("DB_NAME"),
 		},
 		Auth: AuthConfig{
 			Secret: os.Getenv("SECRET"),
