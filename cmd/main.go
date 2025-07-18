@@ -45,6 +45,7 @@ func App() http.Handler {
 	})
 	link.NewLinkHandler(r, link.LinkHandlerDeps{
 		LinkRepository: linkRepository,
+		UserRepository: userRepository,
 		Config:         conf,
 		EventBus:       eventBus,
 	})

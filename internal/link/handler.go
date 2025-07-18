@@ -3,6 +3,7 @@ package link
 import (
 	"fmt"
 	"go/test-http/configs"
+	"go/test-http/internal/user"
 	"go/test-http/pkg/event"
 	"go/test-http/pkg/middleware"
 	"go/test-http/pkg/req"
@@ -16,18 +17,21 @@ import (
 
 type LinkHandlerDeps struct {
 	LinkRepository *LinkRepository
+	UserRepository *user.UserRepository
 	Config         *configs.Config
 	EventBus       *event.EventBus
 }
 
 type LinkHandler struct {
 	LinkRepository *LinkRepository
+	UserRepository *user.UserRepository
 	EventBus       *event.EventBus
 }
 
 func NewLinkHandler(r chi.Router, deps LinkHandlerDeps) {
 	handler := &LinkHandler{
 		LinkRepository: deps.LinkRepository,
+		UserRepository: deps.UserRepository,
 		EventBus:       deps.EventBus,
 	}
 	// (middleware IsAuthed)
@@ -50,7 +54,23 @@ func (handler *LinkHandler) Create() http.HandlerFunc {
 		if err != nil {
 			return
 		}
+
+		email, ok := r.Context().Value(middleware.ContextEmailKey).(string)
+		if !ok {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		user, err := handler.UserRepository.FindByEmail(email)
+		if err != nil || user == nil {
+			http.Error(w, "user not found", http.StatusNotFound)
+			return
+		}
+
+
 		link := NewLink(body.Url)
+		link.UserID = user.ID
+
 		for {
 			existedLink, _ := handler.LinkRepository.GetByHash(link.Hash)
 			if existedLink == nil {
@@ -63,7 +83,7 @@ func (handler *LinkHandler) Create() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		res.Json(w, createdLink, 201)
+		res.Json(w, createdLink, http.StatusCreated)
 	}
 }
 

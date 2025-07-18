@@ -23,5 +23,5 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	db.AutoMigrate(&link.Link{}, &user.User{}, &stat.Stat{})
+	db.AutoMigrate(&user.User{}, &link.Link{}, &stat.Stat{})
 }
