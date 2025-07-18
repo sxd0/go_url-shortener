@@ -5,7 +5,6 @@ import (
 	"go/test-http/configs"
 	"go/test-http/pkg/jwt"
 	"net/http"
-	"strings"
 )
 
 type key string
@@ -22,14 +21,13 @@ func writeUnauthed(w http.ResponseWriter) {
 func IsAuthed(config *configs.Config) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			authHeader := r.Header.Get("Authorization")
-			if !strings.HasPrefix(authHeader, "Bearer ") {
+			cookie, err := r.Cookie("access_token")
+			if err != nil {
 				writeUnauthed(w)
 				return
 			}
 
-			token := strings.TrimPrefix(authHeader, "Bearer ")
-			isValid, data := jwt.NewJWT(config.Auth.Secret).Parse(token)
+			isValid, data := jwt.NewJWT(config.Auth.Secret).Parse(cookie.Value)
 			if !isValid {
 				writeUnauthed(w)
 				return
@@ -40,4 +38,5 @@ func IsAuthed(config *configs.Config) func(http.Handler) http.Handler {
 		})
 	}
 }
+
 
