@@ -1,14 +1,11 @@
 package configs
 
 import (
-	"log"
 	"os"
-
-	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	Db *Db
+	Db   *Db
 	Auth AuthConfig
 }
 
