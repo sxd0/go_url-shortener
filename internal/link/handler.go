@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/go-chi/chi"
 	"gorm.io/gorm"
 )
 
@@ -24,16 +25,23 @@ type LinkHandler struct {
 	EventBus       *event.EventBus
 }
 
-func NewLinkHandler(router *http.ServeMux, deps LinkHandlerDeps) {
+func NewLinkHandler(r chi.Router, deps LinkHandlerDeps) {
 	handler := &LinkHandler{
 		LinkRepository: deps.LinkRepository,
 		EventBus:       deps.EventBus,
 	}
-	router.Handle("POST /link", middleware.IsAuthed(handler.Create(), deps.Config))
-	router.Handle("PATCH /link/{id}", middleware.IsAuthed(handler.Update(), deps.Config))
-	router.Handle("DELETE /link/{id}", middleware.IsAuthed(handler.Delete(), deps.Config))
-	router.HandleFunc("GET /{hash}", handler.GoTo())
-	router.Handle("GET /link", middleware.IsAuthed(handler.GetAll(), deps.Config))
+	// (middleware IsAuthed)
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.IsAuthed(deps.Config))
+
+		r.Post("/link", handler.Create())
+		r.Get("/link", handler.GetAll())
+		r.Patch("/link/{id}", handler.Update())
+		r.Delete("/link/{id}", handler.Delete())
+	})
+
+	// Redirect
+	r.Get("/{hash}", handler.GoTo())
 }
 
 func (handler *LinkHandler) Create() http.HandlerFunc {

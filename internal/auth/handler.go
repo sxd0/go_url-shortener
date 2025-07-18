@@ -6,6 +6,8 @@ import (
 	"go/test-http/pkg/req"
 	"go/test-http/pkg/res"
 	"net/http"
+
+	"github.com/go-chi/chi"
 )
 
 type AuthHandlerDeps struct {
@@ -18,13 +20,16 @@ type AuthHandler struct {
 	*AuthService
 }
 
-func NewAuthHandler(router *http.ServeMux, deps AuthHandlerDeps) {
+func NewAuthHandler(r chi.Router, deps AuthHandlerDeps) {
 	handler := &AuthHandler{
 		Config:      deps.Config,
 		AuthService: deps.AuthService,
 	}
-	router.HandleFunc("POST /auth/login", handler.Login())
-	router.HandleFunc("POST /auth/register", handler.Register())
+
+	r.Group(func(r chi.Router) {
+		r.Post("/auth/login", handler.Login())
+		r.Post("/auth/register", handler.Register())
+	})
 }
 
 func (handler *AuthHandler) Login() http.HandlerFunc {

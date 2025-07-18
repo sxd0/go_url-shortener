@@ -6,6 +6,8 @@ import (
 	"go/test-http/pkg/res"
 	"net/http"
 	"time"
+
+	"github.com/go-chi/chi"
 )
 
 const (
@@ -22,12 +24,16 @@ type StatHandler struct {
 	StatRepository *StatRepository
 }
 
-func NewStatHandler(router *http.ServeMux, deps StatHandlerDeps) {
+func NewStatHandler(r chi.Router, deps StatHandlerDeps) {
 	handler := &StatHandler{
 		StatRepository: deps.StatRepository,
 	}
 
-	router.Handle("GET /stat", middleware.IsAuthed(handler.GetStat(), deps.Config))
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.IsAuthed(deps.Config))
+
+		r.Get("/stat", handler.GetStat())
+	})
 }
 
 func (h *StatHandler) GetStat() http.HandlerFunc {

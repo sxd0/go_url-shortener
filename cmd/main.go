@@ -11,14 +11,20 @@ import (
 	"go/test-http/pkg/event"
 	"go/test-http/pkg/middleware"
 	"net/http"
+
+	"github.com/go-chi/chi"
 )
 
 func App() http.Handler {
 	conf := configs.LoadConfig()
 
 	db := db.NewDb(conf)
-	router := http.NewServeMux()
+	r := chi.NewRouter()
 	eventBus := event.NewEventBus()
+
+	// Middlewares
+	r.Use(middleware.CORS)
+	r.Use(middleware.Logging)
 
 	// Repositories
 	linkRepository := link.NewLinkRepository(db)
@@ -33,28 +39,23 @@ func App() http.Handler {
 	})
 
 	// Handler
-	auth.NewAuthHandler(router, auth.AuthHandlerDeps{
+	auth.NewAuthHandler(r, auth.AuthHandlerDeps{
 		Config:      conf,
 		AuthService: authService,
 	})
-	link.NewLinkHandler(router, link.LinkHandlerDeps{
+	link.NewLinkHandler(r, link.LinkHandlerDeps{
 		LinkRepository: linkRepository,
 		Config:         conf,
 		EventBus:       eventBus,
 	})
-	stat.NewStatHandler(router, stat.StatHandlerDeps{
+	stat.NewStatHandler(r, stat.StatHandlerDeps{
 		StatRepository: statRepository,
 		Config:         conf,
 	})
 
 	go statService.AddClick()
 
-	// Middlewares
-	stack := middleware.Chain(
-		middleware.CORS,
-		middleware.Logging,
-	)
-	return stack(router)
+	return r
 }
 
 func main() {
