@@ -140,7 +140,7 @@ func (handler *LinkHandler) Delete() http.HandlerFunc {
 
 func (handler *LinkHandler) GoTo() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		hash := r.PathValue("hash")
+		hash := chi.URLParam(r, "hash")
 		link, err := handler.LinkRepository.GetByHash(hash)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusNotFound)
@@ -154,23 +154,37 @@ func (handler *LinkHandler) GoTo() http.HandlerFunc {
 	}
 }
 
-func (handler *LinkHandler) GetAll() http.HandlerFunc {
+func (h *LinkHandler) GetAll() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		email, ok := r.Context().Value(middleware.ContextEmailKey).(string)
+		if !ok {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		user, err := h.UserRepository.FindByEmail(email)
+		if err != nil || user == nil {
+			http.Error(w, "user not found", http.StatusNotFound)
+			return
+		}
+
 		limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
-		if err != nil {
-			http.Error(w, "Invalid limit", http.StatusBadRequest)
-			return
+		if err != nil || limit <= 0 {
+			limit = 10
 		}
+
 		offset, err := strconv.Atoi(r.URL.Query().Get("offset"))
+		if err != nil || offset < 0 {
+			offset = 0
+		}
+
+		links, err := h.LinkRepository.GetAllByUserID(user.ID, limit, offset)
 		if err != nil {
-			http.Error(w, "Invalid offset", http.StatusBadRequest)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		links := handler.LinkRepository.GetAll(limit, offset)
-		count := handler.LinkRepository.Count()
-		res.Json(w, GetAllLinksResponse{
-			Links: links,
-			Count: count,
-		}, 200)
+
+		res.Json(w, links, http.StatusOK)
 	}
 }
+

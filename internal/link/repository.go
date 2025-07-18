@@ -30,7 +30,7 @@ func (repo *LinkRepository) Create(link *Link) (*Link, error) {
 
 func (repo *LinkRepository) GetByHash(hash string) (*Link, error) {
 	var link Link
-	result := repo.Database.First(&link, "hash = ?", hash)
+	result := repo.Database.DB.Where("hash = ?", hash).First(&link)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -82,4 +82,13 @@ func (repo *LinkRepository) GetAll(limit, offset int) []Link {
 		Offset(offset).
 		Scan(&links)
 	return links
+}
+
+func (repo *LinkRepository) GetAllByUserID(userID uint, limit int, offset int) ([]Link, error) {
+	var links []Link
+	result := repo.Database.DB.Where("user_id = ?", userID).Limit(limit).Offset(offset).Find(&links)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return links, nil
 }

@@ -51,6 +51,7 @@ func App() http.Handler {
 	})
 	stat.NewStatHandler(r, stat.StatHandlerDeps{
 		StatRepository: statRepository,
+		UserRepository: userRepository,
 		Config:         conf,
 	})
 

@@ -50,3 +50,18 @@ func (repo *StatRepository) GetStats(by string, from, to time.Time) []GetStatRes
 		Scan(&stats)
 	return stats
 }
+
+func (repo *StatRepository) GetByUserID(userID uint, from, to time.Time, groupBy string) ([]Stat, error) {
+	var stats []Stat
+	result := repo.DB.
+		Joins("JOIN links ON stats.link_id = links.id").
+		Where("links.user_id = ?", userID).
+		Where("stats.created_at BETWEEN ? AND ?", from, to).
+		Find(&stats)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return stats, nil
+}
