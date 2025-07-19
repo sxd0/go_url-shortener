@@ -1,9 +1,11 @@
 package link
 
 import (
+	"errors"
 	"go/test-http/internal/stat"
-	"math/rand"
 	"go/test-http/internal/user"
+	"math/big"
+	"crypto/rand"
 
 	"gorm.io/gorm"
 )
@@ -17,24 +19,34 @@ type Link struct {
 	Stats  []stat.Stat `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 }
 
-func NewLink(url string) *Link {
-	link := &Link{
-		Url: url,
+const hashLength = 10
+const hashAlphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+const maxHashGenerateAttempts = 5
+
+func NewLink(url string, checkExists func(hash string) bool) (*Link, error) {
+	for i := 0; i < maxHashGenerateAttempts; i++ {
+		hash, err := generateSecureHash()
+		if err != nil {
+			return nil, err
+		}
+		if !checkExists(hash) {
+			return &Link{
+				Url:  url,
+				Hash: hash,
+			}, nil
+		}
 	}
-	link.GenerateHash()
-	return link
+	return nil, errors.New("failed to generate unique hash after several attempts")
 }
 
-func (link *Link) GenerateHash() {
-	link.Hash = RangStringRunes(10)
-}
-
-var letterRunes = []rune("abcdefghijklmnoprstuvwxyzABCDEFGHIGKLMNOPRSTUVWXYZ")
-
-func RangStringRunes(n int) string {
-	b := make([]rune, n)
+func generateSecureHash() (string, error) {
+	b := make([]byte, hashLength)
 	for i := range b {
-		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(hashAlphabet))))
+		if err != nil {
+			return "", err
+		}
+		b[i] = hashAlphabet[num.Int64()]
 	}
-	return string(b)
+	return string(b), nil
 }

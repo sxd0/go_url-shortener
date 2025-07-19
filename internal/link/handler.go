@@ -5,6 +5,7 @@ import (
 	"go/test-http/configs"
 	"go/test-http/internal/user"
 	"go/test-http/pkg/event"
+	"go/test-http/pkg/logger"
 	"go/test-http/pkg/middleware"
 	"go/test-http/pkg/req"
 	"go/test-http/pkg/res"
@@ -12,6 +13,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -67,19 +69,21 @@ func (handler *LinkHandler) Create() http.HandlerFunc {
 			return
 		}
 
-
-		link := NewLink(body.Url)
-		link.UserID = user.ID
-
-		for {
-			existedLink, _ := handler.LinkRepository.GetByHash(link.Hash)
-			if existedLink == nil {
-				break
-			}
-			link.GenerateHash()
-		}
-		createdLink, err := handler.LinkRepository.Create(link)
+		linkObj, err := NewLink(body.Url, func(hash string) bool {
+			existing, _ := handler.LinkRepository.GetByHash(hash)
+			return existing != nil
+		})
 		if err != nil {
+			logger.Log.Error("failed to generate unique hash", zap.Error(err))
+			http.Error(w, "could not create link", http.StatusInternalServerError)
+			return
+		}
+
+		linkObj.UserID = user.ID
+
+		createdLink, err := handler.LinkRepository.Create(linkObj)
+		if err != nil {
+			logger.Log.Error("failed to save link", zap.Error(err))
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -187,4 +191,3 @@ func (h *LinkHandler) GetAll() http.HandlerFunc {
 		res.Json(w, links, http.StatusOK)
 	}
 }
-
