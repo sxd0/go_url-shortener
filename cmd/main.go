@@ -9,6 +9,7 @@ import (
 	"go/test-http/internal/user"
 	"go/test-http/pkg/db"
 	"go/test-http/pkg/event"
+	"go/test-http/pkg/logger"
 	"go/test-http/pkg/middleware"
 	"net/http"
 
@@ -69,5 +70,9 @@ func main() {
 	}
 
 	fmt.Println("Server is listening on port :8081")
+
+	logger.InitLogger()
+	defer logger.SyncLogger()
+
 	server.ListenAndServe()
 }

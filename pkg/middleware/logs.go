@@ -1,19 +1,25 @@
 package middleware
 
 import (
-	"log"
+	"go/test-http/pkg/logger"
 	"net/http"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 func Logging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		wrapper := &WrapperWriter{
-			ResponseWriter: w,
-			StatusCode:     http.StatusOK,
-		}
-		next.ServeHTTP(wrapper, r)
-		log.Println(wrapper.StatusCode, r.Method, r.URL.Path, time.Since(start))
+		ww := &WrapperWriter{ResponseWriter: w, StatusCode: http.StatusOK}
+
+		next.ServeHTTP(ww, r)
+
+		logger.Log.Info("request",
+			zap.Int("status", ww.StatusCode),
+			zap.String("method", r.Method),
+			zap.String("path", r.URL.Path),
+			zap.Duration("duration", time.Since(start)),
+		)
 	})
 }
