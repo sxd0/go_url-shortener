@@ -4,7 +4,9 @@ import (
 	"errors"
 	"go/test-http/internal/user"
 	"go/test-http/pkg/di"
+	"go/test-http/pkg/logger"
 
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -33,10 +35,12 @@ func (service *AuthService) Login(email, password string) (string, error) {
 func (service *AuthService) Register(email, password, name string) (string, error) {
 	existedUser, _ := service.UserRepository.FindByEmail(email)
 	if existedUser != nil {
+		logger.Log.Warn("user already exists", zap.String("email", email))
 		return "", errors.New(ErrUserExists)
 	}
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
+		logger.Log.Warn("wrong credentials", zap.String("email", email))
 		return "", err
 	}
 	user := &user.User{

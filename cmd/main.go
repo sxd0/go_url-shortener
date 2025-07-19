@@ -25,6 +25,7 @@ func App() http.Handler {
 
 	// Middlewares
 	r.Use(middleware.CORS)
+	r.Use(middleware.RequestID)
 	r.Use(middleware.Logging)
 
 	// Repositories
