@@ -1,6 +1,9 @@
-package user
+package repository
 
-import "github.com/sxd0/go_url-shortener/pkg/db"
+import (
+	"github.com/sxd0/go_url-shortener/pkg/db"
+	"github.com/sxd0/go_url-shortener/internal/auth/model"
+)
 
 type UserRepository struct {
 	Database *db.Db
@@ -12,7 +15,7 @@ func NewUserRepository(database *db.Db) *UserRepository {
 	}
 }
 
-func (repo *UserRepository) Create(user *User) (*User, error) {
+func (repo *UserRepository) Create(user *model.User) (*model.User, error) {
 	result := repo.Database.DB.Create(user)
 	if result.Error != nil {
 		return nil, result.Error
@@ -20,8 +23,8 @@ func (repo *UserRepository) Create(user *User) (*User, error) {
 	return user, nil
 }
 
-func (repo *UserRepository) FindByEmail(email string) (*User, error) {
-	var user User
+func (repo *UserRepository) FindByEmail(email string) (*model.User, error) {
+	var user model.User
 	result := repo.Database.First(&user, "email = ?", email)
 	if result.Error != nil {
 		return nil, result.Error

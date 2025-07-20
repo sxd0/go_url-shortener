@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/sxd0/go_url-shortener/configs"
-	"github.com/sxd0/go_url-shortener/internal/user"
+	"github.com/sxd0/go_url-shortener/internal/auth/repository"
 	"github.com/sxd0/go_url-shortener/pkg/middleware"
 	"github.com/sxd0/go_url-shortener/pkg/res"
 
@@ -19,13 +19,13 @@ const (
 
 type StatHandlerDeps struct {
 	StatRepository *StatRepository
-	UserRepository *user.UserRepository
+	UserRepository *repository.UserRepository
 	Config         *configs.Config
 }
 
 type StatHandler struct {
 	StatRepository *StatRepository
-	UserRepository *user.UserRepository
+	UserRepository *repository.UserRepository
 }
 
 func NewStatHandler(r chi.Router, deps StatHandlerDeps) {

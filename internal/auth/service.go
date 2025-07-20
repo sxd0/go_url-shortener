@@ -3,7 +3,7 @@ package auth
 import (
 	"errors"
 
-	"github.com/sxd0/go_url-shortener/internal/user"
+	"github.com/sxd0/go_url-shortener/internal/auth/model"
 	"github.com/sxd0/go_url-shortener/pkg/di"
 	"github.com/sxd0/go_url-shortener/pkg/logger"
 
@@ -44,7 +44,7 @@ func (service *AuthService) Register(email, password, name string) (string, erro
 		logger.Log.Warn("wrong credentials", zap.String("email", email))
 		return "", err
 	}
-	user := &user.User{
+	user := &model.User{
 		Email:    email,
 		Password: string(hashedPassword),
 		Name:     name,

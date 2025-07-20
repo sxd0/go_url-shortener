@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/sxd0/go_url-shortener/configs"
-	"github.com/sxd0/go_url-shortener/internal/user"
+	"github.com/sxd0/go_url-shortener/internal/auth/repository"
 	"github.com/sxd0/go_url-shortener/pkg/event"
 	"github.com/sxd0/go_url-shortener/pkg/logger"
 	"github.com/sxd0/go_url-shortener/pkg/middleware"
@@ -20,14 +20,14 @@ import (
 
 type LinkHandlerDeps struct {
 	LinkRepository *LinkRepository
-	UserRepository *user.UserRepository
+	UserRepository *repository.UserRepository
 	Config         *configs.Config
 	EventBus       *event.EventBus
 }
 
 type LinkHandler struct {
 	LinkRepository *LinkRepository
-	UserRepository *user.UserRepository
+	UserRepository *repository.UserRepository
 	EventBus       *event.EventBus
 }
 
