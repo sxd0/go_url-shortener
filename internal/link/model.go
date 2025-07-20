@@ -1,11 +1,12 @@
 package link
 
 import (
-	"errors"
-	"go/test-http/internal/stat"
-	"go/test-http/internal/user"
-	"math/big"
 	"crypto/rand"
+	"errors"
+	"math/big"
+
+	"github.com/sxd0/go_url-shortener/internal/stat"
+	"github.com/sxd0/go_url-shortener/internal/user"
 
 	"gorm.io/gorm"
 )

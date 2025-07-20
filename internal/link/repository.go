@@ -1,7 +1,7 @@
 package link
 
 import (
-	"go/test-http/pkg/db"
+	"github.com/sxd0/go_url-shortener/pkg/db"
 
 	"gorm.io/gorm/clause"
 )

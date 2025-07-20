@@ -1,8 +1,9 @@
 package stat
 
 import (
-	"go/test-http/pkg/db"
 	"time"
+
+	"github.com/sxd0/go_url-shortener/pkg/db"
 
 	"gorm.io/datatypes"
 )

@@ -1,8 +1,9 @@
 package stat
 
 import (
-	"go/test-http/pkg/event"
 	"log"
+
+	"github.com/sxd0/go_url-shortener/pkg/event"
 )
 
 type StatServiceDeps struct {

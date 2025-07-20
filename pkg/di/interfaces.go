@@ -1,6 +1,6 @@
 package di
 
-import "go/test-http/internal/user"
+import "github.com/sxd0/go_url-shortener/internal/user"
 
 type IStatRepository interface {
 	AddClick(linkId uint)

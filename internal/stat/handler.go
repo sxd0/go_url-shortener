@@ -1,12 +1,13 @@
 package stat
 
 import (
-	"go/test-http/configs"
-	"go/test-http/internal/user"
-	"go/test-http/pkg/middleware"
-	"go/test-http/pkg/res"
 	"net/http"
 	"time"
+
+	"github.com/sxd0/go_url-shortener/configs"
+	"github.com/sxd0/go_url-shortener/internal/user"
+	"github.com/sxd0/go_url-shortener/pkg/middleware"
+	"github.com/sxd0/go_url-shortener/pkg/res"
 
 	"github.com/go-chi/chi"
 )

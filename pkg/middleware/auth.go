@@ -2,9 +2,10 @@ package middleware
 
 import (
 	"context"
-	"go/test-http/configs"
-	"go/test-http/pkg/jwt"
 	"net/http"
+
+	"github.com/sxd0/go_url-shortener/configs"
+	"github.com/sxd0/go_url-shortener/pkg/jwt"
 )
 
 type key string
@@ -38,5 +39,3 @@ func IsAuthed(config *configs.Config) func(http.Handler) http.Handler {
 		})
 	}
 }
-
-

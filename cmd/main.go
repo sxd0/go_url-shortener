@@ -2,16 +2,17 @@ package main
 
 import (
 	"fmt"
-	"go/test-http/configs"
-	"go/test-http/internal/auth"
-	"go/test-http/internal/link"
-	"go/test-http/internal/stat"
-	"go/test-http/internal/user"
-	"go/test-http/pkg/db"
-	"go/test-http/pkg/event"
-	"go/test-http/pkg/logger"
-	"go/test-http/pkg/middleware"
 	"net/http"
+
+	"github.com/sxd0/go_url-shortener/configs"
+	"github.com/sxd0/go_url-shortener/internal/auth"
+	"github.com/sxd0/go_url-shortener/internal/link"
+	"github.com/sxd0/go_url-shortener/internal/stat"
+	"github.com/sxd0/go_url-shortener/internal/user"
+	"github.com/sxd0/go_url-shortener/pkg/db"
+	"github.com/sxd0/go_url-shortener/pkg/event"
+	"github.com/sxd0/go_url-shortener/pkg/logger"
+	"github.com/sxd0/go_url-shortener/pkg/middleware"
 
 	"github.com/go-chi/chi"
 )

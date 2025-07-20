@@ -1,4 +1,4 @@
-module go/test-http
+module github.com/sxd0/go_url-shortener
 
 go 1.24.1
 

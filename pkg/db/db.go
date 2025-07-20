@@ -1,7 +1,7 @@
 package db
 
 import (
-	"go/test-http/configs"
+	"github.com/sxd0/go_url-shortener/configs"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"

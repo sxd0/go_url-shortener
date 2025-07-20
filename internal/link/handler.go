@@ -2,15 +2,16 @@ package link
 
 import (
 	"fmt"
-	"go/test-http/configs"
-	"go/test-http/internal/user"
-	"go/test-http/pkg/event"
-	"go/test-http/pkg/logger"
-	"go/test-http/pkg/middleware"
-	"go/test-http/pkg/req"
-	"go/test-http/pkg/res"
 	"net/http"
 	"strconv"
+
+	"github.com/sxd0/go_url-shortener/configs"
+	"github.com/sxd0/go_url-shortener/internal/user"
+	"github.com/sxd0/go_url-shortener/pkg/event"
+	"github.com/sxd0/go_url-shortener/pkg/logger"
+	"github.com/sxd0/go_url-shortener/pkg/middleware"
+	"github.com/sxd0/go_url-shortener/pkg/req"
+	"github.com/sxd0/go_url-shortener/pkg/res"
 
 	"github.com/go-chi/chi"
 	"go.uber.org/zap"

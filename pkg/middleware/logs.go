@@ -1,13 +1,13 @@
 package middleware
 
 import (
-	"go/test-http/pkg/logger"
 	"net/http"
 	"time"
 
+	"github.com/sxd0/go_url-shortener/pkg/logger"
+
 	"go.uber.org/zap"
 )
-
 
 func Logging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

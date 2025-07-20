@@ -1,8 +1,9 @@
 package req
 
 import (
-	"go/test-http/pkg/res"
 	"net/http"
+
+	"github.com/sxd0/go_url-shortener/pkg/res"
 )
 
 func HandleBody[T any](w *http.ResponseWriter, r *http.Request) (*T, error) {

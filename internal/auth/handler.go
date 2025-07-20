@@ -1,12 +1,13 @@
 package auth
 
 import (
-	"go/test-http/configs"
-	"go/test-http/pkg/jwt"
-	"go/test-http/pkg/req"
-	"go/test-http/pkg/res"
 	"net/http"
 	"time"
+
+	"github.com/sxd0/go_url-shortener/configs"
+	"github.com/sxd0/go_url-shortener/pkg/jwt"
+	"github.com/sxd0/go_url-shortener/pkg/req"
+	"github.com/sxd0/go_url-shortener/pkg/res"
 
 	"github.com/go-chi/chi"
 )
@@ -133,7 +134,6 @@ func (handler *AuthHandler) Refresh() http.HandlerFunc {
 	}
 }
 
-
 func (handler *AuthHandler) Register() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body, err := req.HandleBody[RegisterRequest](&w, r)
@@ -195,4 +195,3 @@ func (handler *AuthHandler) Register() http.HandlerFunc {
 		res.Json(w, map[string]string{"message": "registration successful"}, http.StatusCreated)
 	}
 }
-

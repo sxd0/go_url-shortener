@@ -2,9 +2,10 @@ package auth
 
 import (
 	"errors"
-	"go/test-http/internal/user"
-	"go/test-http/pkg/di"
-	"go/test-http/pkg/logger"
+
+	"github.com/sxd0/go_url-shortener/internal/user"
+	"github.com/sxd0/go_url-shortener/pkg/di"
+	"github.com/sxd0/go_url-shortener/pkg/logger"
 
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"

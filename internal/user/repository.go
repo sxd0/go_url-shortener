@@ -1,6 +1,6 @@
 package user
 
-import "go/test-http/pkg/db"
+import "github.com/sxd0/go_url-shortener/pkg/db"
 
 type UserRepository struct {
 	Database *db.Db
