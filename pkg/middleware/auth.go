@@ -28,7 +28,7 @@ func IsAuthed(config *configs.Config) func(http.Handler) http.Handler {
 				return
 			}
 
-			isValid, data := jwt.NewJWT(config.Auth.Secret).Parse(cookie.Value)
+			isValid, data := jwt.NewJWT(config.Auth.Secret).ParseAccessToken(cookie.Value)
 			if !isValid {
 				writeUnauthed(w)
 				return

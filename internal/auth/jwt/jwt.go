@@ -9,7 +9,7 @@ import (
 type JWTData struct {
 	Email     string
 	UserID    uint
-	IsRefresh bool
+	TokenType string
 	Exp       time.Duration
 }
 
@@ -23,26 +23,19 @@ func NewJWT(secret string) *JWT {
 	}
 }
 
-func (j *JWT) Create(data JWTData) (string, error) {
+func (j *JWT) createToken(data JWTData) (string, error) {
 	claims := jwt.MapClaims{
-		"email":   data.Email,
-		"user_id": data.UserID,
-		"exp":     time.Now().Add(data.Exp).Unix(),
-	}
-
-	if data.IsRefresh {
-		claims["refresh"] = true
+		"email":      data.Email,
+		"user_id":    data.UserID,
+		"exp":        time.Now().Add(data.Exp).Unix(),
+		"token_type": data.TokenType,
 	}
 
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	s, err := t.SignedString([]byte(j.Secret))
-	if err != nil {
-		return "", err
-	}
-	return s, nil
+	return t.SignedString([]byte(j.Secret))
 }
 
-func (j *JWT) Parse(token string) (bool, *JWTData) {
+func (j *JWT) parseToken(token string) (bool, *JWTData) {
 	t, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
 		return []byte(j.Secret), nil
 	})
@@ -61,14 +54,14 @@ func (j *JWT) Parse(token string) (bool, *JWTData) {
 		return false, nil
 	}
 
-	data := JWTData{
-		Email:  claims["email"].(string),
-		UserID: uint(claims["user_id"].(float64)),
+	tokenType, ok := claims["token_type"].(string)
+	if !ok {
+		return false, nil
 	}
 
-	if val, ok := claims["refresh"].(bool); ok && val {
-		data.IsRefresh = true
+	return true, &JWTData{
+		Email:     claims["email"].(string),
+		UserID:    uint(claims["user_id"].(float64)),
+		TokenType: tokenType,
 	}
-
-	return true, &data
 }

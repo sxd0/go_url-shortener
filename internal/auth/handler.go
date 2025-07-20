@@ -55,22 +55,15 @@ func (handler *AuthHandler) Login() http.HandlerFunc {
 			return
 		}
 
-		accessToken, err := jwt.NewJWT(handler.Config.Auth.Secret).Create(jwt.JWTData{
-			Email:  user.Email,
-			UserID: user.ID,
-			Exp:    15 * time.Minute,
-		})
+		jwtGen := jwt.NewJWT(handler.Config.Auth.Secret)
+
+		accessToken, err := jwtGen.CreateAccessToken(user.ID, user.Email)
 		if err != nil {
 			http.Error(w, "failed to generate access token", http.StatusInternalServerError)
 			return
 		}
 
-		refreshToken, err := jwt.NewJWT(handler.Config.Auth.Secret).Create(jwt.JWTData{
-			Email:     user.Email,
-			UserID:    user.ID,
-			IsRefresh: true,
-			Exp:       7 * 24 * time.Hour,
-		})
+		refreshToken, err := jwtGen.CreateRefreshToken(user.ID, user.Email)
 		if err != nil {
 			http.Error(w, "failed to generate refresh token", http.StatusInternalServerError)
 			return
@@ -106,17 +99,15 @@ func (handler *AuthHandler) Refresh() http.HandlerFunc {
 			return
 		}
 
-		isValid, data := jwt.NewJWT(handler.Config.Auth.Secret).Parse(cookie.Value)
-		if !isValid || !data.IsRefresh {
+		jwtGen := jwt.NewJWT(handler.Config.Auth.Secret)
+
+		isValid, data := jwtGen.ParseRefreshToken(cookie.Value)
+		if !isValid {
 			http.Error(w, "invalid refresh token", http.StatusUnauthorized)
 			return
 		}
 
-		accessToken, err := jwt.NewJWT(handler.Config.Auth.Secret).Create(jwt.JWTData{
-			Email:  data.Email,
-			UserID: data.UserID,
-			Exp:    15 * time.Minute,
-		})
+		accessToken, err := jwtGen.CreateAccessToken(data.UserID, data.Email)
 		if err != nil {
 			http.Error(w, "failed to generate token", http.StatusInternalServerError)
 			return
@@ -154,22 +145,15 @@ func (handler *AuthHandler) Register() http.HandlerFunc {
 			return
 		}
 
-		accessToken, err := jwt.NewJWT(handler.Config.Auth.Secret).Create(jwt.JWTData{
-			Email:  user.Email,
-			UserID: user.ID,
-			Exp:    15 * time.Minute,
-		})
+		jwtGen := jwt.NewJWT(handler.Config.Auth.Secret)
+
+		accessToken, err := jwtGen.CreateAccessToken(user.ID, user.Email)
 		if err != nil {
 			http.Error(w, "failed to generate access token", http.StatusInternalServerError)
 			return
 		}
 
-		refreshToken, err := jwt.NewJWT(handler.Config.Auth.Secret).Create(jwt.JWTData{
-			Email:     user.Email,
-			UserID:    user.ID,
-			IsRefresh: true,
-			Exp:       7 * 24 * time.Hour,
-		})
+		refreshToken, err := jwtGen.CreateRefreshToken(user.ID, user.Email)
 		if err != nil {
 			http.Error(w, "failed to generate refresh token", http.StatusInternalServerError)
 			return

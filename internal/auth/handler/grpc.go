@@ -47,58 +47,51 @@ func (h *AuthHandler) Login(ctx context.Context, req *authpb.LoginRequest) (*aut
 		return nil, err
 	}
 
-	token, err := h.TokenGenerator.Create(jwt.JWTData{
-		Email:  email,
-		UserID: 0,
-	})
+	user, err := h.UserRepo.FindByEmail(email)
+	if err != nil || user == nil {
+		return nil, errors.New("user not found")
+	}
+
+	accessToken, err := h.TokenGenerator.CreateAccessToken(user.ID, user.Email)
 	if err != nil {
 		return nil, err
 	}
 
-	refreshToken, err := h.TokenGenerator.Create(jwt.JWTData{
-		Email:  email,
-		UserID: 0,
-	})
+	refreshToken, err := h.TokenGenerator.CreateRefreshToken(user.ID, user.Email)
 	if err != nil {
 		return nil, err
 	}
 
 	return &authpb.LoginResponse{
-		AccessToken:  token,
+		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}, nil
 }
 
 func (h *AuthHandler) Refresh(ctx context.Context, req *authpb.RefreshRequest) (*authpb.RefreshResponse, error) {
-	valid, data := h.TokenGenerator.Parse(req.RefreshToken)
+	valid, data := h.TokenGenerator.ParseRefreshToken(req.RefreshToken)
 	if !valid {
 		return nil, errors.New("invalid refresh token")
 	}
 
-	token, err := h.TokenGenerator.Create(jwt.JWTData{
-		UserID: data.UserID,
-		Email:  data.Email,
-	})
+	accessToken, err := h.TokenGenerator.CreateAccessToken(data.UserID, data.Email)
 	if err != nil {
 		return nil, err
 	}
 
-	refreshToken, err := h.TokenGenerator.Create(jwt.JWTData{
-		UserID: data.UserID,
-		Email:  data.Email,
-	})
+	refreshToken, err := h.TokenGenerator.CreateRefreshToken(data.UserID, data.Email)
 	if err != nil {
 		return nil, err
 	}
 
 	return &authpb.RefreshResponse{
-		AccessToken:  token,
+		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}, nil
 }
 
 func (h *AuthHandler) VerifyToken(ctx context.Context, req *authpb.VerifyTokenRequest) (*authpb.VerifyTokenResponse, error) {
-	valid, data := h.TokenGenerator.Parse(req.AccessToken)
+	valid, data := h.TokenGenerator.ParseAccessToken(req.AccessToken)
 	if !valid {
 		return &authpb.VerifyTokenResponse{Valid: false}, nil
 	}
