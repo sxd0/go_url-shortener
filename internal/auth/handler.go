@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/sxd0/go_url-shortener/configs"
+	"github.com/sxd0/go_url-shortener/internal/auth/service"
 	"github.com/sxd0/go_url-shortener/pkg/jwt"
 	"github.com/sxd0/go_url-shortener/pkg/req"
 	"github.com/sxd0/go_url-shortener/pkg/res"
@@ -14,12 +15,12 @@ import (
 
 type AuthHandlerDeps struct {
 	*configs.Config
-	*AuthService
+	*service.AuthService
 }
 
 type AuthHandler struct {
 	*configs.Config
-	*AuthService
+	*service.AuthService
 }
 
 func NewAuthHandler(r chi.Router, deps AuthHandlerDeps) {
@@ -37,7 +38,7 @@ func NewAuthHandler(r chi.Router, deps AuthHandlerDeps) {
 
 func (handler *AuthHandler) Login() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body, err := req.HandleBody[LoginRequest](&w, r)
+		body, err := req.HandleBody[service.LoginRequest](&w, r)
 		if err != nil {
 			return
 		}
@@ -136,7 +137,7 @@ func (handler *AuthHandler) Refresh() http.HandlerFunc {
 
 func (handler *AuthHandler) Register() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body, err := req.HandleBody[RegisterRequest](&w, r)
+		body, err := req.HandleBody[service.RegisterRequest](&w, r)
 		if err != nil {
 			return
 		}

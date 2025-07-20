@@ -1,4 +1,4 @@
-package auth
+package service
 
 type LoginRequest struct {
 	Email    string `json:"email" validate:"required,email"`

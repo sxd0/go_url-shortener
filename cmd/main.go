@@ -7,6 +7,7 @@ import (
 	"github.com/sxd0/go_url-shortener/configs"
 	"github.com/sxd0/go_url-shortener/internal/auth"
 	"github.com/sxd0/go_url-shortener/internal/auth/repository"
+	"github.com/sxd0/go_url-shortener/internal/auth/service"
 	"github.com/sxd0/go_url-shortener/internal/link"
 	"github.com/sxd0/go_url-shortener/internal/stat"
 	"github.com/sxd0/go_url-shortener/pkg/db"
@@ -35,7 +36,7 @@ func App() http.Handler {
 	statRepository := stat.NewStatRepository(db)
 
 	// Services
-	authService := auth.NewAuthService(userRepository)
+	authService := service.NewAuthService(userRepository)
 	statService := stat.NewStatService(&stat.StatServiceDeps{
 		EventBus:       eventBus,
 		StatRepository: statRepository,

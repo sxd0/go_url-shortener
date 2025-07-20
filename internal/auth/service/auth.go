@@ -1,4 +1,4 @@
-package auth
+package service
 
 import (
 	"errors"
@@ -24,11 +24,11 @@ func NewAuthService(userRepository di.IUserRepository) *AuthService {
 func (service *AuthService) Login(email, password string) (string, error) {
 	existedUser, _ := service.UserRepository.FindByEmail(email)
 	if existedUser == nil {
-		return "", errors.New(ErrWrongCredentials)
+		return "", errors.New("wrong email or password")
 	}
 	err := bcrypt.CompareHashAndPassword([]byte(existedUser.Password), []byte(password))
 	if err != nil {
-		return "", errors.New(ErrWrongCredentials)
+		return "", errors.New("wrong email or password")
 	}
 	return existedUser.Email, nil
 }
@@ -37,7 +37,7 @@ func (service *AuthService) Register(email, password, name string) (string, erro
 	existedUser, _ := service.UserRepository.FindByEmail(email)
 	if existedUser != nil {
 		logger.Log.Warn("user already exists", zap.String("email", email))
-		return "", errors.New(ErrUserExists)
+		return "", errors.New("user exists")
 	}
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
