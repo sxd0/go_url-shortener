@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/sxd0/go_url-shortener/configs"
+	"github.com/sxd0/go_url-shortener/internal/auth/jwt"
 	"github.com/sxd0/go_url-shortener/internal/auth/service"
-	"github.com/sxd0/go_url-shortener/pkg/jwt"
 	"github.com/sxd0/go_url-shortener/pkg/req"
 	"github.com/sxd0/go_url-shortener/pkg/res"
 

@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/sxd0/go_url-shortener/configs"
-	"github.com/sxd0/go_url-shortener/pkg/jwt"
+	"github.com/sxd0/go_url-shortener/internal/auth/jwt"
 )
 
 type key string
