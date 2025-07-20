@@ -13,6 +13,7 @@ import (
 	"github.com/sxd0/go_url-shortener/pkg/db"
 	"github.com/sxd0/go_url-shortener/proto/authpb"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 func main() {
@@ -42,6 +43,7 @@ func main() {
 
 	server := grpc.NewServer()
 	authpb.RegisterAuthServiceServer(server, authHandler)
+	reflection.Register(server)
 
 	log.Printf("Auth gRPC server listening on :%s", port)
 	if err := server.Serve(lis); err != nil {

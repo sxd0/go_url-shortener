@@ -15,10 +15,14 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
-  app:
-    build: .
+  auth:
+    build:
+      context: .
+      dockerfile: cmd/auth/Dockerfile
+    env_file:
+      - ./cmd/auth/.env
     ports:
-      - "8081:8081"
+      - "50051:50051"
     environment:
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
@@ -28,6 +32,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
   migrate:
     image: migrate/migrate
     container_name: url-shortener-migrate
