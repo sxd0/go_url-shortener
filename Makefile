@@ -1,6 +1,7 @@
 include .env
 export
 
+# DOCKER
 up:
 	docker compose up --build
 
@@ -14,6 +15,7 @@ bash:
 	docker compose exec app sh
 
 
+# MIGRATE
 MIGRATE = migrate -path ./migrations -database "postgres://$(DB_USER):$(DB_PASSWORD)@localhost:5434/$(DB_NAME)?sslmode=disable"
 
 migrate-up:
@@ -27,3 +29,17 @@ migrate-force-drop:
 
 migrate-status:
 	$(MIGRATE) version
+
+
+# FORMAT
+format:
+	@echo "Formatting all Go files"
+	find . -type f -name '*.go' -exec goimports -w {} +
+	go fmt ./...
+
+build:
+	@echo "Building all Go packages..."
+	go build ./...
+
+check: format build
+	@echo "Format and Build Passed!!!"

@@ -1,8 +1,8 @@
 package stat
 
 import (
-	"gorm.io/gorm"
 	"gorm.io/datatypes"
+	"gorm.io/gorm"
 )
 
 type Stat struct {

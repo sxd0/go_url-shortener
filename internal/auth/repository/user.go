@@ -1,8 +1,8 @@
 package repository
 
 import (
-	"github.com/sxd0/go_url-shortener/pkg/db"
 	"github.com/sxd0/go_url-shortener/internal/auth/model"
+	"github.com/sxd0/go_url-shortener/pkg/db"
 )
 
 type UserRepository struct {

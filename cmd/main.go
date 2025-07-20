@@ -6,9 +6,9 @@ import (
 
 	"github.com/sxd0/go_url-shortener/configs"
 	"github.com/sxd0/go_url-shortener/internal/auth"
+	"github.com/sxd0/go_url-shortener/internal/auth/repository"
 	"github.com/sxd0/go_url-shortener/internal/link"
 	"github.com/sxd0/go_url-shortener/internal/stat"
-	"github.com/sxd0/go_url-shortener/internal/auth/repository"
 	"github.com/sxd0/go_url-shortener/pkg/db"
 	"github.com/sxd0/go_url-shortener/pkg/event"
 	"github.com/sxd0/go_url-shortener/pkg/logger"

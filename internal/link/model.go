@@ -5,8 +5,8 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/sxd0/go_url-shortener/internal/stat"
 	"github.com/sxd0/go_url-shortener/internal/auth/model"
+	"github.com/sxd0/go_url-shortener/internal/stat"
 
 	"gorm.io/gorm"
 )
@@ -16,7 +16,7 @@ type Link struct {
 	Url    string `json:"url"`
 	Hash   string `json:"hash" gorm:"uniqueIndex"`
 	UserID uint
-	User   model.User   `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
+	User   model.User  `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
 	Stats  []stat.Stat `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 }
 
