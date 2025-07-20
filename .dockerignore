@@ -1,8 +1,26 @@
-**/vendor
-**/node_modules
-**/pgdata
+# Go build artifacts
+*.out
+*.exe
+*.test
+
+# Git files
 .git
-README.md
-Dockerfile
-docker-compose.yml
+.gitignore
+
+# Local environment
 .env
+.env.*
+
+# Node/npm if frontend appears later
+node_modules
+
+# IDE/editor config
+.vscode
+.idea
+
+# Test files & coverage
+*.cover
+*.log
+
+# Local data
+tmp/

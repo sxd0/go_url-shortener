@@ -1,4 +1,37 @@
-/.env
-/postgres-data
-/cmd/.env
 cookies.txt
+
+# Binaries
+/bin/
+/*.exe
+/*.dll
+/*.so
+/*.dylib
+/*.test
+
+# Output of go build
+*.out
+
+# Dependency directories (vendor/)
+vendor/
+
+# Go workspace files
+*.mod
+*.sum
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+
+# Logs
+*.log
+
+# Compiled protos
+proto/**/*.pb.go
+
+# Docker artifacts
+docker-compose.override.yml
+
+# Misc
+.env
+.env.*
