@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package linkpb;
+
+option go_package = "github.com/sxd0/go_url-shortener/proto/gen/go/linkpb";
+
+// gRPC Service
+service LinkService {
+  rpc CreateLink (CreateLinkRequest) returns (LinkResponse);
+  rpc GetAllLinks (GetAllLinksRequest) returns (GetAllLinksResponse);
+  rpc UpdateLink (UpdateLinkRequest) returns (LinkResponse);
+  rpc DeleteLink (DeleteLinkRequest) returns (Empty);
+  rpc GetLinkByHash (GetLinkByHashRequest) returns (LinkResponse);
+}
+
+// Messages
+message CreateLinkRequest {
+  string url = 1;
+  uint32 user_id = 2;
+}
+
+message UpdateLinkRequest {
+  uint32 id = 1;
+  string url = 2;
+  string hash = 3;
+}
+
+message DeleteLinkRequest {
+  uint32 id = 1;
+}
+
+message GetAllLinksRequest {
+  uint32 user_id = 1;
+  uint32 limit = 2;
+  uint32 offset = 3;
+}
+
+message GetAllLinksResponse {
+  repeated Link links = 1;
+  uint64 total = 2;
+}
+
+message GetLinkByHashRequest {
+  string hash = 1;
+}
+
+message Link {
+  uint32 id = 1;
+  string url = 2;
+  string hash = 3;
+  uint32 user_id = 4;
+}
+
+message LinkResponse {
+  Link link = 1;
+}
+
+message Empty {}
