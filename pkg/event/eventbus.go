@@ -1,13 +1,13 @@
-package eventbus
+package event
+
+const (
+	EventLinkVisited = "link.visited"
+)
 
 type Event struct {
 	Type string
 	Data any
 }
-
-const (
-	EventLinkVisited = "link.visited"
-)
 
 type EventBus struct {
 	bus chan Event
@@ -23,6 +23,6 @@ func (e *EventBus) Publish(event Event) {
 	e.bus <- event
 }
 
-func (e *EventBus) Subscribe() <-chan Event {
+func (e EventBus) Subscribe() <-chan Event {
 	return e.bus
 }

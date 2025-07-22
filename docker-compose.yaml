@@ -48,6 +48,53 @@ services:
       - ./jwt_private.pem:/app/jwt_private.pem
       - ./jwt_public.pem:/app/jwt_public.pem
 
+  link_postgres:
+    image: postgres:16
+    restart: always
+    container_name: link_postgres
+    env_file:
+      - ./cmd/link/.env
+    ports:
+      - "5435:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 3s
+      timeout: 2s
+      retries: 5
+    volumes:
+      - link_postgres_data:/var/lib/postgresql/data
+
+  link_migrate:
+    image: migrate/migrate
+    container_name: link_migrate
+    depends_on:
+      link_postgres:
+        condition: service_healthy
+    volumes:
+      - ./internal/link/migrations:/migrations
+    env_file:
+      - ./cmd/link/.env
+    command:
+      [
+        "-path", "/migrations",
+        "-database", "postgres://postgres:my_pass@link_postgres:5432/link_db?sslmode=disable",
+        "up"
+      ]
+
+  link_service:
+    build:
+      context: .
+      dockerfile: ./cmd/link/Dockerfile
+    container_name: link_service
+    env_file:
+      - ./cmd/link/.env
+    depends_on:
+      link_postgres:
+        condition: service_healthy
+    ports:
+      - "50052:50052"
+
 
 volumes:
   auth_postgres_data:
+  link_postgres_data:

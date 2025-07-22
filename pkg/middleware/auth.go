@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"crypto/rsa"
 	"net/http"
 
 	"github.com/sxd0/go_url-shortener/configs"
@@ -28,7 +29,7 @@ func IsAuthed(config *configs.Config) func(http.Handler) http.Handler {
 				return
 			}
 
-			isValid, data := jwt.NewJWT(config.Auth.Secret).ParseAccessToken(cookie.Value)
+			isValid, data := jwt.NewJWT(&rsa.PrivateKey{}, &rsa.PublicKey{}).ParseAccessToken(cookie.Value)
 			if !isValid {
 				writeUnauthed(w)
 				return
