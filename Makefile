@@ -5,10 +5,10 @@ up:
 down:
 	docker compose down -v
 
-psql_auth:
+psql-auth:
 	docker compose exec auth_postgres psql -U postgres auth_db
 
-psql_link:
+psql-link:
 	docker compose exec link_postgres psql -U postgres link_db
 
 bash:
