@@ -1,8 +1,7 @@
 package link
 
 import (
-	"github.com/sxd0/go_url-shortener/pkg/db"
-
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
@@ -11,17 +10,17 @@ import (
 // }
 
 type LinkRepository struct {
-	Database *db.Db
+	Database *gorm.DB
 }
 
-func NewLinkRepository(database *db.Db) *LinkRepository {
+func NewLinkRepository(database *gorm.DB) *LinkRepository {
 	return &LinkRepository{
 		Database: database,
 	}
 }
 
 func (repo *LinkRepository) Create(link *Link) (*Link, error) {
-	result := repo.Database.DB.Create(link)
+	result := repo.Database.Create(link)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -30,7 +29,7 @@ func (repo *LinkRepository) Create(link *Link) (*Link, error) {
 
 func (repo *LinkRepository) GetByHash(hash string) (*Link, error) {
 	var link Link
-	result := repo.Database.DB.Where("hash = ?", hash).First(&link)
+	result := repo.Database.Where("hash = ?", hash).First(&link)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -86,7 +85,7 @@ func (repo *LinkRepository) GetAll(limit, offset int) []Link {
 
 func (repo *LinkRepository) GetAllByUserID(userID uint, limit int, offset int) ([]Link, error) {
 	var links []Link
-	result := repo.Database.DB.Where("user_id = ?", userID).Limit(limit).Offset(offset).Find(&links)
+	result := repo.Database.Where("user_id = ?", userID).Limit(limit).Offset(offset).Find(&links)
 	if result.Error != nil {
 		return nil, result.Error
 	}

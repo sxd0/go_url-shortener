@@ -3,16 +3,15 @@ package stat
 import (
 	"time"
 
-	"github.com/sxd0/go_url-shortener/pkg/db"
-
 	"gorm.io/datatypes"
+	"gorm.io/gorm"
 )
 
 type StatRepository struct {
-	*db.Db
+	Db *gorm.DB
 }
 
-func NewStatRepository(db *db.Db) *StatRepository {
+func NewStatRepository(db *gorm.DB) *StatRepository {
 	return &StatRepository{
 		Db: db,
 	}
@@ -43,7 +42,7 @@ func (repo *StatRepository) GetStats(by string, from, to time.Time) []GetStatRes
 	case GroupByMonth:
 		selectQuery = "to_char(date, 'YYYY-MM') as period, sum(clicks)"
 	}
-	repo.DB.Table("stats").
+	repo.Db.Table("stats").
 		Select(selectQuery).
 		Where("date BETWEEN ? and ?", from, to).
 		Group("period").
@@ -54,7 +53,7 @@ func (repo *StatRepository) GetStats(by string, from, to time.Time) []GetStatRes
 
 func (repo *StatRepository) GetByUserID(userID uint, from, to time.Time, groupBy string) ([]Stat, error) {
 	var stats []Stat
-	result := repo.DB.
+	result := repo.Db.
 		Joins("JOIN links ON stats.link_id = links.id").
 		Where("links.user_id = ?", userID).
 		Where("stats.created_at BETWEEN ? AND ?", from, to).

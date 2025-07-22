@@ -1,6 +1,3 @@
-include .env
-export
-
 # DOCKER
 up:
 	docker compose up --build
@@ -16,7 +13,7 @@ bash:
 
 
 # MIGRATE
-MIGRATE = migrate -path ./migrations -database "postgres://$(DB_USER):$(DB_PASSWORD)@localhost:5434/$(DB_NAME)?sslmode=disable"
+MIGRATE = migrate -path ./migrations -database "postgres://$(DB_USER):$(DB_PASSWORD)@localhost:5434/$(DB_NAME)?sslmode=$(DB_SSLMODE)"
 
 migrate-up:
 	$(MIGRATE) up

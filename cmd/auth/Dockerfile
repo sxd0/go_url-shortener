@@ -14,6 +14,4 @@ FROM gcr.io/distroless/base-debian11
 
 COPY --from=builder /auth /auth
 
-ENV AUTH_GRPC_PORT=50051
-
 ENTRYPOINT ["/auth"]

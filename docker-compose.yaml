@@ -1,47 +1,50 @@
 services:
-  postgres:
+  auth_postgres:
     image: postgres:16
-    environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+    restart: always
+    container_name: auth_postgres
+    env_file:
+      - ./cmd/auth/.env
     ports:
       - "5434:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 3s
       timeout: 2s
       retries: 5
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - auth_postgres_data:/var/lib/postgresql/data
 
-  auth:
-    build:
-      context: .
-      dockerfile: cmd/auth/Dockerfile
+  auth_migrate:
+    image: migrate/migrate
+    container_name: auth_migrate
+    depends_on:
+      auth_postgres:
+        condition: service_healthy
+    volumes:
+      - ./internal/auth/migrations:/migrations
     env_file:
       - ./cmd/auth/.env
+    command:
+      [
+        "-path", "/migrations",
+        "-database", "postgres://postgres:my_pass@auth_postgres:5432/auth_db?sslmode=disable",
+        "up"
+      ]
+
+  auth_service:
+    build:
+      context: .
+      dockerfile: ./cmd/auth/Dockerfile
+    container_name: auth_service
+    env_file:
+      - ./cmd/auth/.env
+    depends_on:
+      auth_postgres:
+        condition: service_healthy
     ports:
       - "50051:50051"
-    environment:
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
-    depends_on:
-      postgres:
-        condition: service_healthy
 
-  migrate:
-    image: migrate/migrate
-    container_name: url-shortener-migrate
-    volumes:
-      - ./migrations:/migrations
-    command: [ "-path", "/migrations", "-database", "postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?sslmode=disable", "up" ]
-    depends_on:
-      postgres:
-        condition: service_healthy
 
 volumes:
-  pgdata:
+  auth_postgres_data:
