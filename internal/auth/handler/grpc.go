@@ -119,4 +119,3 @@ func (h *AuthHandler) GetUserByID(ctx context.Context, req *authpb.GetUserByIDRe
 		Name:   user.Name,
 	}, nil
 }
-

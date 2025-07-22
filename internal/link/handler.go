@@ -7,6 +7,9 @@ import (
 
 	"github.com/sxd0/go_url-shortener/configs"
 	"github.com/sxd0/go_url-shortener/internal/auth/repository"
+
+	"github.com/sxd0/go_url-shortener/internal/link/model"
+
 	"github.com/sxd0/go_url-shortener/pkg/event"
 	"github.com/sxd0/go_url-shortener/pkg/logger"
 	"github.com/sxd0/go_url-shortener/pkg/middleware"
@@ -70,7 +73,7 @@ func (handler *LinkHandler) Create() http.HandlerFunc {
 			return
 		}
 
-		linkObj, err := NewLink(body.Url, func(hash string) bool {
+		linkObj, err := model.NewLink(body.Url, func(hash string) bool {
 			existing, _ := handler.LinkRepository.GetByHash(hash)
 			return existing != nil
 		})
@@ -108,7 +111,7 @@ func (handler *LinkHandler) Update() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		link, err := handler.LinkRepository.Update(&Link{
+		link, err := handler.LinkRepository.Update(&model.Link{
 			Model: gorm.Model{ID: uint(id)},
 			Url:   body.Url,
 			Hash:  body.Hash,

@@ -1,6 +1,7 @@
-package link
+package repository
 
 import (
+	"github.com/sxd0/go_url-shortener/internal/link/model"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -19,7 +20,7 @@ func NewLinkRepository(database *gorm.DB) *LinkRepository {
 	}
 }
 
-func (repo *LinkRepository) Create(link *Link) (*Link, error) {
+func (repo *LinkRepository) Create(link *model.Link) (*model.Link, error) {
 	result := repo.Database.Create(link)
 	if result.Error != nil {
 		return nil, result.Error
@@ -27,8 +28,8 @@ func (repo *LinkRepository) Create(link *Link) (*Link, error) {
 	return link, nil
 }
 
-func (repo *LinkRepository) GetByHash(hash string) (*Link, error) {
-	var link Link
+func (repo *LinkRepository) GetByHash(hash string) (*model.Link, error) {
+	var link model.Link
 	result := repo.Database.Where("hash = ?", hash).First(&link)
 	if result.Error != nil {
 		return nil, result.Error
@@ -36,7 +37,7 @@ func (repo *LinkRepository) GetByHash(hash string) (*Link, error) {
 	return &link, nil
 }
 
-func (repo *LinkRepository) Update(link *Link) (*Link, error) {
+func (repo *LinkRepository) Update(link *model.Link) (*model.Link, error) {
 	result := repo.Database.Clauses(clause.Returning{}).Updates(link)
 	if result.Error != nil {
 		return nil, result.Error
@@ -45,15 +46,15 @@ func (repo *LinkRepository) Update(link *Link) (*Link, error) {
 }
 
 func (repo *LinkRepository) Delete(id uint) error {
-	result := repo.Database.Delete(&Link{}, id)
+	result := repo.Database.Delete(&model.Link{}, id)
 	if result.Error != nil {
 		return result.Error
 	}
 	return nil
 }
 
-func (repo *LinkRepository) GetById(id uint) (*Link, error) {
-	var link Link
+func (repo *LinkRepository) GetById(id uint) (*model.Link, error) {
+	var link model.Link
 	result := repo.Database.First(&link, id)
 	if result.Error != nil {
 		return nil, result.Error
@@ -70,8 +71,8 @@ func (repo *LinkRepository) Count() int64 {
 	return count
 }
 
-func (repo *LinkRepository) GetAll(limit, offset int) []Link {
-	var links []Link
+func (repo *LinkRepository) GetAll(limit, offset int) []model.Link {
+	var links []model.Link
 
 	repo.Database.
 		Table("links").
@@ -83,8 +84,8 @@ func (repo *LinkRepository) GetAll(limit, offset int) []Link {
 	return links
 }
 
-func (repo *LinkRepository) GetAllByUserID(userID uint, limit int, offset int) ([]Link, error) {
-	var links []Link
+func (repo *LinkRepository) GetAllByUserID(userID uint, limit int, offset int) ([]model.Link, error) {
+	var links []model.Link
 	result := repo.Database.Where("user_id = ?", userID).Limit(limit).Offset(offset).Find(&links)
 	if result.Error != nil {
 		return nil, result.Error

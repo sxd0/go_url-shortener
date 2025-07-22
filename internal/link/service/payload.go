@@ -1,4 +1,6 @@
-package link
+package service
+
+import "github.com/sxd0/go_url-shortener/internal/link/model"
 
 type LinkCreateRequest struct {
 	Url string `json:"url" validate:"required,url"`
@@ -10,6 +12,6 @@ type LinkUpdateRequest struct {
 }
 
 type GetAllLinksResponse struct {
-	Links []Link `json:"links"`
-	Count int64  `json:"count"`
+	Links []model.Link `json:"links"`
+	Count int64        `json:"count"`
 }

@@ -1,4 +1,4 @@
-package event
+package eventbus
 
 const (
 	EventLinkVisited = "link.visited"
