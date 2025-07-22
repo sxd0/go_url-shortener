@@ -9,9 +9,9 @@ import (
 	"github.com/sxd0/go_url-shortener/internal/auth/handler"
 	"github.com/sxd0/go_url-shortener/internal/auth/jwt"
 	"github.com/sxd0/go_url-shortener/internal/auth/repository"
+	"github.com/sxd0/go_url-shortener/internal/auth/server"
 	"github.com/sxd0/go_url-shortener/internal/auth/service"
 	"github.com/sxd0/go_url-shortener/proto/authpb"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
@@ -30,7 +30,7 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	server := grpc.NewServer()
+	server := server.NewGRPCServerWithMiddleware()
 	authpb.RegisterAuthServiceServer(server, authHandler)
 	reflection.Register(server)
 
