@@ -2,9 +2,15 @@ package service
 
 import (
 	"context"
+	"errors"
 
 	"github.com/sxd0/go_url-shortener/internal/link/model"
 	"github.com/sxd0/go_url-shortener/internal/link/repository"
+)
+
+const (
+	maxHashGenerateAttempts = 5
+	hashLength              = 10
 )
 
 type LinkService struct {
@@ -18,21 +24,50 @@ func NewLinkService(repo *repository.LinkRepository) *LinkService {
 }
 
 func (s *LinkService) CreateLink(ctx context.Context, url string, userID uint) (*model.Link, error) {
-	return nil, nil
+	for i := 0; i < maxHashGenerateAttempts; i++ {
+		link, err := model.NewLink(url, func(hash string) bool {
+			exists, _ := s.repo.GetByHash(hash)
+			return exists != nil
+		})
+		if err != nil {
+			return nil, err
+		}
+		link.UserID = userID
+
+		created, err := s.repo.Create(link)
+		if err == nil {
+			return created, nil
+		}
+	}
+	return nil, errors.New("failed to create unique link after several attempts")
 }
 
-func (s *LinkService) GetAllLinks(ctx context.Context, userID uint, limit int, offset int) ([]model.Link, error) {
-	return nil, nil
+func (s *LinkService) GetAllLinks(ctx context.Context, userID uint, limit int, offset int) ([]model.Link, int64, error) {
+	links, err := s.repo.GetAllByUserID(userID, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	count, err := s.repo.CountByUserID(userID)
+	if err != nil {
+		return nil, 0, err
+	}
+	return links, count, nil
 }
 
-func (s *LinkService) UpdateLink(ctx context.Context, id uint, url, hash string) (*model.Link, error) {
-	return nil, nil
+func (s *LinkService) UpdateLink(ctx context.Context, id uint, url string, hash string) (*model.Link, error) {
+	link, err := s.repo.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+	link.Url = url
+	link.Hash = hash
+	return s.repo.Update(link)
 }
 
 func (s *LinkService) DeleteLink(ctx context.Context, id uint) error {
-	return nil
+	return s.repo.Delete(id)
 }
 
 func (s *LinkService) GetLinkByHash(ctx context.Context, hash string) (*model.Link, error) {
-	return nil, nil
+	return s.repo.GetByHash(hash)
 }

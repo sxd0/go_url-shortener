@@ -3,92 +3,64 @@ package repository
 import (
 	"github.com/sxd0/go_url-shortener/internal/link/model"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
-// type LinkRepositoryDeps struct {
-// 	DataBase *db.Db
-// }
-
 type LinkRepository struct {
-	Database *gorm.DB
+	db *gorm.DB
 }
 
-func NewLinkRepository(database *gorm.DB) *LinkRepository {
+func NewLinkRepository(db *gorm.DB) *LinkRepository {
 	return &LinkRepository{
-		Database: database,
+		db: db,
 	}
 }
 
-func (repo *LinkRepository) Create(link *model.Link) (*model.Link, error) {
-	result := repo.Database.Create(link)
-	if result.Error != nil {
-		return nil, result.Error
-	}
-	return link, nil
-}
-
-func (repo *LinkRepository) GetByHash(hash string) (*model.Link, error) {
-	var link model.Link
-	result := repo.Database.Where("hash = ?", hash).First(&link)
-	if result.Error != nil {
-		return nil, result.Error
-	}
-	return &link, nil
-}
-
-func (repo *LinkRepository) Update(link *model.Link) (*model.Link, error) {
-	result := repo.Database.Clauses(clause.Returning{}).Updates(link)
-	if result.Error != nil {
-		return nil, result.Error
+func (r *LinkRepository) Create(link *model.Link) (*model.Link, error) {
+	if err := r.db.Create(link).Error; err != nil {
+		return nil, err
 	}
 	return link, nil
 }
 
-func (repo *LinkRepository) Delete(id uint) error {
-	result := repo.Database.Delete(&model.Link{}, id)
-	if result.Error != nil {
-		return result.Error
-	}
-	return nil
-}
-
-func (repo *LinkRepository) GetById(id uint) (*model.Link, error) {
+func (r *LinkRepository) GetByHash(hash string) (*model.Link, error) {
 	var link model.Link
-	result := repo.Database.First(&link, id)
-	if result.Error != nil {
-		return nil, result.Error
+	if err := r.db.Where("hash = ?", hash).First(&link).Error; err != nil {
+		return nil, err
 	}
 	return &link, nil
 }
 
-func (repo *LinkRepository) Count() int64 {
-	var count int64
-	repo.Database.
-		Table("links").
-		Where("deleted_at is null").
-		Count(&count)
-	return count
+func (r *LinkRepository) Update(link *model.Link) (*model.Link, error) {
+	if err := r.db.Save(link).Error; err != nil {
+		return nil, err
+	}
+	return link, nil
 }
 
-func (repo *LinkRepository) GetAll(limit, offset int) []model.Link {
-	var links []model.Link
-
-	repo.Database.
-		Table("links").
-		Where("deleted_at is null").
-		Order("id asc").
-		Limit(limit).
-		Offset(offset).
-		Scan(&links)
-	return links
+func (r *LinkRepository) Delete(id uint) error {
+	return r.db.Delete(&model.Link{}, id).Error
 }
 
-func (repo *LinkRepository) GetAllByUserID(userID uint, limit int, offset int) ([]model.Link, error) {
+func (r *LinkRepository) GetByID(id uint) (*model.Link, error) {
+	var link model.Link
+	if err := r.db.First(&link, id).Error; err != nil {
+		return nil, err
+	}
+	return &link, nil
+}
+
+func (r *LinkRepository) GetAllByUserID(userID uint, limit int, offset int) ([]model.Link, error) {
 	var links []model.Link
-	result := repo.Database.Where("user_id = ?", userID).Limit(limit).Offset(offset).Find(&links)
-	if result.Error != nil {
-		return nil, result.Error
+	if err := r.db.Where("user_id = ?", userID).Limit(limit).Offset(offset).Find(&links).Error; err != nil {
+		return nil, err
 	}
 	return links, nil
+}
+
+func (r *LinkRepository) CountByUserID(userID uint) (int64, error) {
+	var count int64
+	if err := r.db.Model(&model.Link{}).Where("user_id = ?", userID).Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
 }
