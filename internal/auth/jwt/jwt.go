@@ -1,9 +1,11 @@
 package jwt
 
 import (
+	"crypto/rsa"
+	"errors"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
+	jwtlib "github.com/golang-jwt/jwt/v5"
 )
 
 type JWTData struct {
@@ -14,37 +16,42 @@ type JWTData struct {
 }
 
 type JWT struct {
-	Secret string
+	PrivateKey *rsa.PrivateKey
+	PublicKey  *rsa.PublicKey
 }
 
-func NewJWT(secret string) *JWT {
+func NewJWT(privateKey *rsa.PrivateKey, publicKey *rsa.PublicKey) *JWT {
 	return &JWT{
-		Secret: secret,
+		PrivateKey: privateKey,
+		PublicKey:  publicKey,
 	}
 }
 
 func (j *JWT) createToken(data JWTData) (string, error) {
-	claims := jwt.MapClaims{
+	claims := jwtlib.MapClaims{
 		"email":      data.Email,
 		"user_id":    data.UserID,
 		"exp":        time.Now().Add(data.Exp).Unix(),
 		"token_type": data.TokenType,
 	}
 
-	t := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return t.SignedString([]byte(j.Secret))
+	t := jwtlib.NewWithClaims(jwtlib.SigningMethodRS256, claims)
+	return t.SignedString(j.PrivateKey)
 }
 
 func (j *JWT) parseToken(token string) (bool, *JWTData) {
-	t, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
-		return []byte(j.Secret), nil
+	t, err := jwtlib.Parse(token, func(t *jwtlib.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwtlib.SigningMethodRSA); !ok {
+			return nil, errors.New("unexpected signing method")
+		}
+		return j.PublicKey, nil
 	})
 
 	if err != nil || !t.Valid {
 		return false, nil
 	}
 
-	claims, ok := t.Claims.(jwt.MapClaims)
+	claims, ok := t.Claims.(jwtlib.MapClaims)
 	if !ok {
 		return false, nil
 	}

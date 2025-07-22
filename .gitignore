@@ -35,3 +35,6 @@ docker-compose.override.yml
 # Misc
 .env
 .env.*
+
+# Key
+*.pem

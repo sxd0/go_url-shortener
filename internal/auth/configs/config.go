@@ -21,7 +21,8 @@ type DbConfig struct {
 }
 
 type AuthConfig struct {
-	Secret string
+	PrivateKeyPath string
+	PublicKeyPath  string
 }
 
 type AppConfig struct {
@@ -39,7 +40,8 @@ func LoadConfig() *Config {
 	}
 
 	auth := AuthConfig{
-		Secret: getEnv("JWT_SECRET"),
+		PrivateKeyPath: getEnv("JWT_PRIVATE_KEY_PATH"),
+		PublicKeyPath:  getEnv("JWT_PUBLIC_KEY_PATH"),
 	}
 
 	app := AppConfig{

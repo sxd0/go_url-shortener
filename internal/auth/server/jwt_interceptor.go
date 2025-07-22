@@ -51,10 +51,10 @@ func NewJWTUnaryInterceptor(jwtService *jwt.JWT) grpc.UnaryServerInterceptor {
 }
 
 func isPublicMethod(method string) bool {
-	return method == "/auth.AuthService/Login" ||
-		method == "/auth.AuthService/Register" ||
-		method == "/auth.AuthService.Refresh" ||
-		method == "/auth.AuthService.VerifyToken"
+	return method == "/authpb.AuthService/Login" ||
+		method == "/authpb.AuthService/Register" ||
+		method == "/authpb.AuthService/Refresh" ||
+		method == "/authpb.AuthService/VerifyToken"
 }
 
 func parseBearerToken(header string) string {

@@ -26,7 +26,18 @@ func main() {
 	dbConn := auth.NewDb(cfg)
 	userRepo := repository.NewUserRepository(dbConn)
 	authService := service.NewAuthService(userRepo)
-	tokenGenerator := jwt.NewJWT(cfg.Auth.Secret)
+
+	privKey, err := jwt.LoadRSAPrivateKey(cfg.Auth.PrivateKeyPath)
+	if err != nil {
+		log.Fatalf("failed to load private key: %v", err)
+	}
+
+	pubKey, err := jwt.LoadRSAPublicKey(cfg.Auth.PublicKeyPath)
+	if err != nil {
+		log.Fatalf("failed to load public key: %v", err)
+	}
+
+	tokenGenerator := jwt.NewJWT(privKey, pubKey)
 
 	authHandler := handler.NewAuthHandler(authService, tokenGenerator, userRepo)
 

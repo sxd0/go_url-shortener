@@ -10,8 +10,10 @@ COPY . .
 WORKDIR /app/cmd/auth
 RUN go build -o /auth
 
-FROM gcr.io/distroless/base-debian11
+FROM alpine
 
-COPY --from=builder /auth /auth
+WORKDIR /app
 
-ENTRYPOINT ["/auth"]
+COPY --from=builder /auth .
+
+ENTRYPOINT ["/app/auth"]
