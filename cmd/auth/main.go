@@ -3,6 +3,10 @@ package main
 import (
 	"log"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/sxd0/go_url-shortener/internal/auth"
 	"github.com/sxd0/go_url-shortener/internal/auth/configs"
@@ -11,7 +15,8 @@ import (
 	"github.com/sxd0/go_url-shortener/internal/auth/repository"
 	"github.com/sxd0/go_url-shortener/internal/auth/server"
 	"github.com/sxd0/go_url-shortener/internal/auth/service"
-	"github.com/sxd0/go_url-shortener/proto/authpb"
+	"github.com/sxd0/go_url-shortener/proto/gen/go/authpb"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
@@ -30,12 +35,38 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	server := server.NewGRPCServerWithMiddleware()
-	authpb.RegisterAuthServiceServer(server, authHandler)
-	reflection.Register(server)
+	grpcServer := server.NewGRPCServerWithMiddleware(tokenGenerator)
+	authpb.RegisterAuthServiceServer(grpcServer, authHandler)
+	reflection.Register(grpcServer)
 
-	log.Printf("Auth gRPC server listening on :%s", cfg.App.Port)
-	if err := server.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+	go func() {
+		log.Printf("Auth gRPC server listening on :%s", cfg.App.Port)
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Fatalf("failed to serve: %v", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	<-quit
+	log.Println("Shutting down gRPC server...")
+
+	gracefulStop(grpcServer)
+}
+
+func gracefulStop(server *grpc.Server) {
+	done := make(chan struct{})
+	go func() {
+		server.GracefulStop()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		log.Println("gRPC server stopped gracefully")
+	case <-time.After(10 * time.Second):
+		log.Println("Timeout — forcing server shutdown")
+		server.Stop()
 	}
 }

@@ -6,8 +6,9 @@ import (
 
 	"github.com/sxd0/go_url-shortener/internal/auth/jwt"
 	"github.com/sxd0/go_url-shortener/internal/auth/repository"
+	"github.com/sxd0/go_url-shortener/internal/auth/server"
 	"github.com/sxd0/go_url-shortener/internal/auth/service"
-	"github.com/sxd0/go_url-shortener/proto/authpb"
+	"github.com/sxd0/go_url-shortener/proto/gen/go/authpb"
 )
 
 type AuthHandler struct {
@@ -102,5 +103,20 @@ func (h *AuthHandler) VerifyToken(ctx context.Context, req *authpb.VerifyTokenRe
 }
 
 func (h *AuthHandler) GetUserByID(ctx context.Context, req *authpb.GetUserByIDRequest) (*authpb.GetUserByIDResponse, error) {
-	return nil, errors.New("method GetUserByID not implemented")
+	jwtData, ok := ctx.Value(server.ContextJWTKey{}).(*jwt.JWTData)
+	if !ok || jwtData == nil {
+		return nil, errors.New("unauthenticated: jwt data not found")
+	}
+
+	user, err := h.UserRepo.FindByID(uint(req.UserId))
+	if err != nil || user == nil {
+		return nil, errors.New("user not found")
+	}
+
+	return &authpb.GetUserByIDResponse{
+		UserId: uint64(user.ID),
+		Email:  user.Email,
+		Name:   user.Name,
+	}, nil
 }
+

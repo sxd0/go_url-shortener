@@ -40,3 +40,8 @@ build:
 
 check: format build
 	@echo "Format and Build Passed!!!"
+
+
+# BUF
+proto-generate:
+	cd proto && buf generate && cd ..

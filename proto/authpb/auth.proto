@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package auth;
+package authpb;
 
-option go_package = "proto/authpb";
+option go_package = "github.com/sxd0/go_url-shortener/proto/gen/go/authpb";
 
 service AuthService {
   rpc Register(RegisterRequest) returns (RegisterResponse);

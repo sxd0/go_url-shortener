@@ -31,3 +31,12 @@ func (repo *UserRepository) FindByEmail(email string) (*model.User, error) {
 	}
 	return &user, nil
 }
+
+func (repo *UserRepository) FindByID(id uint) (*model.User, error) {
+	var user model.User
+	result := repo.Database.First(&user, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &user, nil
+}
