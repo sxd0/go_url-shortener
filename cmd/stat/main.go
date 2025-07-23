@@ -42,7 +42,7 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	grpcServer := server.NewGRPCServerWithMiddleware(logger)
+	grpcServer := server.NewGRPCServerWithMiddleware()
 
 	statpb.RegisterStatServiceServer(grpcServer, handler.NewStatGRPCHandler(statRepo))
 

@@ -63,9 +63,10 @@ func (h *GRPCHandler) GetStats(ctx context.Context, req *statpb.GetStatsRequest)
 	var resp statpb.GetStatsResponseList
 	for _, stat := range stats {
 		resp.Stats = append(resp.Stats, &statpb.Stat{
-			Period: stat.Date.String(),
+			Period: time.Time(stat.Date).Format("2006-01-02"),
 			Sum:    int32(stat.Clicks),
 		})
+		
 	}
 
 	return &resp, nil
