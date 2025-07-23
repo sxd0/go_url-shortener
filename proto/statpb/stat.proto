@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package statpb;
+
+option go_package = "github.com/sxd0/go_url-shortener/proto/gen/go/statpb";
+
+service StatService {
+  rpc GetStats(GetStatsRequest) returns (GetStatsResponseList);
+}
+
+message GetStatsRequest {
+  string from = 1; // формат YYYY-MM-DD
+  string to = 2;   // формат YYYY-MM-DD
+  string by = 3;   // "day" или "month"
+}
+
+message Stat {
+  string period = 1;
+  int32 sum = 2;
+}
+
+message GetStatsResponseList {
+  repeated Stat stats = 1;
+}
