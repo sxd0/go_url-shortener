@@ -55,18 +55,14 @@ func (h *GRPCHandler) GetStats(ctx context.Context, req *statpb.GetStatsRequest)
 		return nil, status.Error(codes.InvalidArgument, "invalid 'by' value (expected: day or month)")
 	}
 
-	stats, err := h.Repo.GetByUserID(uint(userID), from, to, by)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
+	stats := h.Repo.GetStats(uint(userID), by, from, to)
 
 	var resp statpb.GetStatsResponseList
 	for _, stat := range stats {
 		resp.Stats = append(resp.Stats, &statpb.Stat{
-			Period: time.Time(stat.Date).Format("2006-01-02"),
-			Sum:    int32(stat.Clicks),
+			Period: stat.Period,
+			Sum:    int32(stat.Sum),
 		})
-		
 	}
 
 	return &resp, nil
