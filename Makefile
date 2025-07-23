@@ -11,6 +11,9 @@ psql-auth:
 psql-link:
 	docker compose exec link_postgres psql -U postgres link_db
 
+psql-stat:
+	docker compose exec stat_postgres psql -U postgres stat_db
+
 bash:
 	docker compose exec app sh
 
