@@ -140,6 +140,22 @@ services:
     ports:
       - "50053:50053"
 
+  gateway_service:
+    build:
+      context: .
+      dockerfile: ./cmd/gateway/Dockerfile
+    container_name: gateway_service
+    env_file:
+      - ./cmd/gateway/.env
+    depends_on:
+      - auth_service
+      - link_service
+      - stat_service
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./jwt_public.pem:/app/jwt_public.pem
+
 
 volumes:
   auth_postgres_data:
