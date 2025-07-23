@@ -12,6 +12,7 @@ import (
 	"github.com/sxd0/go_url-shortener/internal/stat/repository"
 	"github.com/sxd0/go_url-shortener/internal/stat/server"
 	"github.com/sxd0/go_url-shortener/internal/stat/service"
+	"github.com/sxd0/go_url-shortener/internal/stat"
 	"github.com/sxd0/go_url-shortener/pkg/event"
 	"github.com/sxd0/go_url-shortener/proto/gen/go/statpb"
 	"go.uber.org/zap"
@@ -25,7 +26,7 @@ func main() {
 	logger, _ := zap.NewProduction()
 	defer logger.Sync()
 
-	db := configs.NewDb(cfg)
+	db := stat.NewDb(cfg)
 
 	bus := event.NewEventBus()
 
@@ -37,7 +38,7 @@ func main() {
 
 	go statService.AddClick()
 
-	lis, err := net.Listen("tcp", cfg.Server.GRPCPort)
+	lis, err := net.Listen("tcp", ":" + cfg.App.Port)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
@@ -49,7 +50,7 @@ func main() {
 	reflection.Register(grpcServer)
 
 	go func() {
-		logger.Info("StatService listening on " + cfg.Server.GRPCPort)
+		logger.Info("StatService listening on " + cfg.App.Port)
 		if err := grpcServer.Serve(lis); err != nil {
 			logger.Fatal("failed to serve: " + err.Error())
 		}

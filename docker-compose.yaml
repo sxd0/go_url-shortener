@@ -94,7 +94,54 @@ services:
     ports:
       - "50052:50052"
 
+  stat_postgres:
+    image: postgres:16
+    restart: always
+    container_name: stat_postgres
+    env_file:
+      - ./cmd/stat/.env
+    ports:
+      - "5436:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 3s
+      timeout: 2s
+      retries: 5
+    volumes:
+      - stat_postgres_data:/var/lib/postgresql/data
+
+  stat_migrate:
+    image: migrate/migrate
+    container_name: stat_migrate
+    depends_on:
+      stat_postgres:
+        condition: service_healthy
+    volumes:
+      - ./internal/stat/migrations:/migrations
+    env_file:
+      - ./cmd/stat/.env
+    command:
+      [
+        "-path", "/migrations",
+        "-database", "postgres://postgres:my_pass@stat_postgres:5432/stat_db?sslmode=disable",
+        "up"
+      ]
+
+  stat_service:
+    build:
+      context: .
+      dockerfile: ./cmd/stat/Dockerfile
+    container_name: stat_service
+    env_file:
+      - ./cmd/stat/.env
+    depends_on:
+      stat_postgres:
+        condition: service_healthy
+    ports:
+      - "50053:50053"
+
 
 volumes:
   auth_postgres_data:
   link_postgres_data:
+  stat_postgres_data:

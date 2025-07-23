@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"errors"
+	"log"
 	"time"
 
 	"github.com/sxd0/go_url-shortener/internal/stat/model"
@@ -14,7 +16,6 @@ const (
 	GroupByMonth = "month"
 )
 
-
 type StatRepository struct {
 	Db *gorm.DB
 }
@@ -26,18 +27,36 @@ func NewStatRepository(db *gorm.DB) *StatRepository {
 }
 
 func (repo *StatRepository) AddClick(linkId uint) {
+	today := time.Now().Format("2006-01-02") 
+	date, err := time.Parse("2006-01-02", today)
+	if err != nil {
+		log.Println("Failed to parse date:", err)
+		return
+	}
+
+	currentDate := datatypes.Date(date)
+
 	var stat model.Stat
-	currentDate := datatypes.Date(time.Now())
-	repo.Db.Find(&stat, "link_id = ? and date = ?", linkId, currentDate)
-	if stat.ID == 0 {
-		repo.Db.Create(&model.Stat{
-			LinkId: linkId,
-			Clicks: 1,
-			Date:   currentDate,
-		})
-	} else {
-		stat.Clicks += 1
-		repo.Db.Save(&stat)
+	err = repo.Db.First(&stat, "link_id = ? AND date = ?", linkId, currentDate).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			newStat := model.Stat{
+				LinkId: linkId,
+				Clicks: 1,
+				Date:   currentDate,
+			}
+			if err := repo.Db.Create(&newStat).Error; err != nil {
+				log.Println("Failed to create stat:", err)
+			}
+			return
+		}
+		log.Println("Failed to query stat:", err)
+		return
+	}
+
+	stat.Clicks += 1
+	if err := repo.Db.Save(&stat).Error; err != nil {
+		log.Println("Failed to update stat:", err)
 	}
 }
 
@@ -59,17 +78,3 @@ func (repo *StatRepository) GetStats(by string, from, to time.Time) []payload.Ge
 	return stats
 }
 
-func (repo *StatRepository) GetByUserID(userID uint, from, to time.Time, groupBy string) ([]model.Stat, error) {
-	var stats []model.Stat
-	result := repo.Db.
-		Joins("JOIN links ON stats.link_id = links.id").
-		Where("links.user_id = ?", userID).
-		Where("stats.created_at BETWEEN ? AND ?", from, to).
-		Find(&stats)
-
-	if result.Error != nil {
-		return nil, result.Error
-	}
-
-	return stats, nil
-}
