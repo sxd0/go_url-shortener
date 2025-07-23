@@ -1,11 +1,19 @@
-package stat
+package repository
 
 import (
 	"time"
 
+	"github.com/sxd0/go_url-shortener/internal/stat/model"
+	"github.com/sxd0/go_url-shortener/internal/stat/payload"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
+
+const (
+	GroupByDay   = "day"
+	GroupByMonth = "month"
+)
+
 
 type StatRepository struct {
 	Db *gorm.DB
@@ -18,11 +26,11 @@ func NewStatRepository(db *gorm.DB) *StatRepository {
 }
 
 func (repo *StatRepository) AddClick(linkId uint) {
-	var stat Stat
+	var stat model.Stat
 	currentDate := datatypes.Date(time.Now())
 	repo.Db.Find(&stat, "link_id = ? and date = ?", linkId, currentDate)
 	if stat.ID == 0 {
-		repo.Db.Create(&Stat{
+		repo.Db.Create(&model.Stat{
 			LinkId: linkId,
 			Clicks: 1,
 			Date:   currentDate,
@@ -33,8 +41,8 @@ func (repo *StatRepository) AddClick(linkId uint) {
 	}
 }
 
-func (repo *StatRepository) GetStats(by string, from, to time.Time) []GetStatResponse {
-	var stats []GetStatResponse
+func (repo *StatRepository) GetStats(by string, from, to time.Time) []payload.GetStatResponse {
+	var stats []payload.GetStatResponse
 	var selectQuery string
 	switch by {
 	case GroupByDay:
@@ -51,8 +59,8 @@ func (repo *StatRepository) GetStats(by string, from, to time.Time) []GetStatRes
 	return stats
 }
 
-func (repo *StatRepository) GetByUserID(userID uint, from, to time.Time, groupBy string) ([]Stat, error) {
-	var stats []Stat
+func (repo *StatRepository) GetByUserID(userID uint, from, to time.Time, groupBy string) ([]model.Stat, error) {
+	var stats []model.Stat
 	result := repo.Db.
 		Joins("JOIN links ON stats.link_id = links.id").
 		Where("links.user_id = ?", userID).

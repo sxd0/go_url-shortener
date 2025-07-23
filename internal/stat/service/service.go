@@ -1,19 +1,20 @@
-package stat
+package service
 
 import (
 	"log"
 
+	"github.com/sxd0/go_url-shortener/internal/stat/repository"
 	"github.com/sxd0/go_url-shortener/pkg/event"
 )
 
 type StatServiceDeps struct {
 	EventBus       *event.EventBus
-	StatRepository *StatRepository
+	StatRepository *repository.StatRepository
 }
 
 type StatService struct {
 	EventBus       *event.EventBus
-	StatRepository *StatRepository
+	StatRepository *repository.StatRepository
 }
 
 func NewStatService(deps *StatServiceDeps) *StatService {
