@@ -32,7 +32,7 @@ func (h *AuthHandler) Register(ctx context.Context, req *authpb.RegisterRequest)
 		return nil, err
 	}
 
-	user, err := h.UserRepo.FindByEmail(req.Email)
+	user, err := h.AuthService.UserRepository.FindByEmail(req.Email)
 	if err != nil || user == nil {
 		return nil, errors.New("failed to fetch user after register")
 	}
@@ -107,8 +107,10 @@ func (h *AuthHandler) GetUserByID(ctx context.Context, req *authpb.GetUserByIDRe
 	if !ok || jwtData == nil {
 		return nil, errors.New("unauthenticated: jwt data not found")
 	}
+	
+	user, err := h.AuthService.UserRepository.FindByID(uint(req.UserId))
 
-	user, err := h.UserRepo.FindByID(uint(req.UserId))
+	
 	if err != nil || user == nil {
 		return nil, errors.New("user not found")
 	}
