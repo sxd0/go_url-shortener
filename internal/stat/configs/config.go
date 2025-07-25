@@ -6,8 +6,8 @@ import (
 )
 
 type Config struct {
-	Db   *DbConfig
-	App  AppConfig
+	Db  *DbConfig
+	App AppConfig
 }
 
 type DbConfig struct {

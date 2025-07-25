@@ -3,18 +3,22 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/sxd0/go_url-shortener/internal/gateway/middleware"
-	"github.com/sxd0/go_url-shortener/internal/gateway/service"
+	"github.com/sxd0/go_url-shortener/proto/gen/go/statpb"
+	"google.golang.org/grpc/metadata"
 )
 
 type StatHandler struct {
-	StatService *service.StatService
+	client statpb.StatServiceClient
 }
 
-func NewStatHandler(statService *service.StatService) *StatHandler {
-	return &StatHandler{StatService: statService}
+func NewStatHandler(deps Deps) *StatHandler {
+	return &StatHandler{
+		client: deps.StatClient,
+	}
 }
 
 func (h *StatHandler) GetStats() http.HandlerFunc {
@@ -46,7 +50,16 @@ func (h *StatHandler) GetStats() http.HandlerFunc {
 			return
 		}
 
-		resp, err := h.StatService.GetStats(r.Context(), userID, from, to, by)
+		req := &statpb.GetStatsRequest{
+			From: from,
+			To:   to,
+			By:   by,
+		}
+
+		md := metadata.Pairs("x-user-id", strconv.FormatUint(uint64(userID), 10))
+		ctx := metadata.NewOutgoingContext(r.Context(), md)
+
+		resp, err := h.client.GetStats(ctx, req)
 		if err != nil {
 			http.Error(w, "failed to get stats: "+err.Error(), http.StatusInternalServerError)
 			return

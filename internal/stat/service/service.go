@@ -3,8 +3,8 @@ package service
 import (
 	"log"
 
-	"github.com/sxd0/go_url-shortener/internal/stat/repository"
 	eventPayload "github.com/sxd0/go_url-shortener/internal/stat/event"
+	"github.com/sxd0/go_url-shortener/internal/stat/repository"
 	"github.com/sxd0/go_url-shortener/pkg/event"
 )
 

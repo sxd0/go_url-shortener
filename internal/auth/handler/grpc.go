@@ -107,10 +107,9 @@ func (h *AuthHandler) GetUserByID(ctx context.Context, req *authpb.GetUserByIDRe
 	if !ok || jwtData == nil {
 		return nil, errors.New("unauthenticated: jwt data not found")
 	}
-	
+
 	user, err := h.AuthService.UserRepository.FindByID(uint(req.UserId))
 
-	
 	if err != nil || user == nil {
 		return nil, errors.New("user not found")
 	}

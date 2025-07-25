@@ -30,7 +30,9 @@ func main() {
 	r.Use(middleware.JWTMiddleware(verifier))
 
 	// Handlers
-	statHandler := handler.NewStatHandler(statService)
+	statHandler := handler.NewStatHandler(handler.Deps{
+		StatClient: statService.Client(),
+	})
 	r.Get("/stat", statHandler.GetStats())
 
 	// Server

@@ -7,12 +7,12 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/sxd0/go_url-shortener/internal/stat"
 	"github.com/sxd0/go_url-shortener/internal/stat/configs"
 	"github.com/sxd0/go_url-shortener/internal/stat/handler"
 	"github.com/sxd0/go_url-shortener/internal/stat/repository"
 	"github.com/sxd0/go_url-shortener/internal/stat/server"
 	"github.com/sxd0/go_url-shortener/internal/stat/service"
-	"github.com/sxd0/go_url-shortener/internal/stat"
 	"github.com/sxd0/go_url-shortener/pkg/event"
 	"github.com/sxd0/go_url-shortener/proto/gen/go/statpb"
 	"go.uber.org/zap"
@@ -38,7 +38,7 @@ func main() {
 
 	go statService.AddClick()
 
-	lis, err := net.Listen("tcp", ":" + cfg.App.Port)
+	lis, err := net.Listen("tcp", ":"+cfg.App.Port)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}

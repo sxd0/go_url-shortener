@@ -12,4 +12,3 @@ type Stat struct {
 	Clicks int            `json:"clicks" gorm:"not null"`
 	Date   datatypes.Date `json:"date" gorm:"not null;index"`
 }
-

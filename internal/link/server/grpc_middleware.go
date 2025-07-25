@@ -27,4 +27,3 @@ func NewGRPCServerWithMiddleware(serverOptions ...grpc.ServerOption) *grpc.Serve
 
 	return grpc.NewServer(opts...)
 }
-

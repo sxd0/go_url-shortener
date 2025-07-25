@@ -14,6 +14,10 @@ type StatService struct {
 	client statpb.StatServiceClient
 }
 
+func (s *StatService) Client() statpb.StatServiceClient {
+	return s.client
+}
+
 func NewStatService(addr string) (*StatService, error) {
 	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
