@@ -128,3 +128,30 @@ func (h *LinkHandler) Delete() http.HandlerFunc {
 		res.Json(w, map[string]string{"status": "deleted"}, http.StatusOK)
 	}
 }
+
+func (h *LinkHandler) DeleteByHash() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		hash := chi.URLParam(r, "hash")
+		if hash == "" {
+			http.Error(w, "invalid hash", http.StatusBadRequest)
+			return
+		}
+
+		getResp, err := h.Client.GetLinkByHash(r.Context(), &linkpb.GetLinkByHashRequest{
+			Hash: hash,
+		})
+		if err != nil || getResp == nil || getResp.Link == nil {
+			http.Error(w, "link not found", http.StatusNotFound)
+			return
+		}
+
+		_, err = h.Client.DeleteLink(r.Context(), &linkpb.DeleteLinkRequest{
+			Id: getResp.Link.Id,
+		})
+		if err != nil {
+			http.Error(w, "failed to delete link: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		res.Json(w, map[string]string{"status": "deleted"}, http.StatusOK)
+	}
+}

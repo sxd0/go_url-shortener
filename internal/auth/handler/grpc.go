@@ -6,35 +6,40 @@ import (
 
 	"github.com/sxd0/go_url-shortener/internal/auth/jwt"
 	"github.com/sxd0/go_url-shortener/internal/auth/repository"
-	"github.com/sxd0/go_url-shortener/internal/auth/server"
 	"github.com/sxd0/go_url-shortener/internal/auth/service"
 	"github.com/sxd0/go_url-shortener/proto/gen/go/authpb"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type AuthHandler struct {
 	authpb.UnimplementedAuthServiceServer
 	AuthService    *service.AuthService
 	TokenGenerator *jwt.JWT
-	UserRepo       *repository.UserRepository
+	UserRepository *repository.UserRepository
 }
 
-func NewAuthHandler(as *service.AuthService, tg *jwt.JWT, ur *repository.UserRepository) *AuthHandler {
+func NewAuthHandler(service *service.AuthService, tokenGenerator *jwt.JWT, repo *repository.UserRepository) *AuthHandler {
 	return &AuthHandler{
-		AuthService:    as,
-		TokenGenerator: tg,
-		UserRepo:       ur,
+		AuthService:    service,
+		TokenGenerator: tokenGenerator,
+		UserRepository: repo,
 	}
 }
 
 func (h *AuthHandler) Register(ctx context.Context, req *authpb.RegisterRequest) (*authpb.RegisterResponse, error) {
-	_, err := h.AuthService.Register(req.Email, req.Password, req.Name)
+	if req.Email == "" || req.Password == "" || req.Name == "" {
+		return nil, status.Error(codes.InvalidArgument, "email, password and name are required")
+	}
+
+	email, err := h.AuthService.Register(req.Email, req.Password, req.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	user, err := h.AuthService.UserRepository.FindByEmail(req.Email)
+	user, err := h.AuthService.UserRepository.FindByEmail(email)
 	if err != nil || user == nil {
-		return nil, errors.New("failed to fetch user after register")
+		return nil, status.Error(codes.Internal, "failed to fetch user after register")
 	}
 
 	return &authpb.RegisterResponse{
@@ -43,29 +48,26 @@ func (h *AuthHandler) Register(ctx context.Context, req *authpb.RegisterRequest)
 }
 
 func (h *AuthHandler) Login(ctx context.Context, req *authpb.LoginRequest) (*authpb.LoginResponse, error) {
+	if req.Email == "" || req.Password == "" {
+		return nil, status.Error(codes.InvalidArgument, "email and password are required")
+	}
+
 	email, err := h.AuthService.Login(req.Email, req.Password)
 	if err != nil {
 		return nil, err
 	}
 
-	user, err := h.UserRepo.FindByEmail(email)
+	user, err := h.AuthService.UserRepository.FindByEmail(email)
 	if err != nil || user == nil {
-		return nil, errors.New("user not found")
+		return nil, status.Error(codes.Internal, "user not found after login")
 	}
 
-	accessToken, err := h.TokenGenerator.CreateAccessToken(user.ID, user.Email)
-	if err != nil {
-		return nil, err
-	}
-
-	refreshToken, err := h.TokenGenerator.CreateRefreshToken(user.ID, user.Email)
-	if err != nil {
-		return nil, err
-	}
+	access, _ := h.TokenGenerator.CreateAccessToken(user.ID, user.Email)
+	refresh, _ := h.TokenGenerator.CreateRefreshToken(user.ID, user.Email)
 
 	return &authpb.LoginResponse{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
+		AccessToken:  access,
+		RefreshToken: refresh,
 	}, nil
 }
 
@@ -79,12 +81,10 @@ func (h *AuthHandler) Refresh(ctx context.Context, req *authpb.RefreshRequest) (
 	if err != nil {
 		return nil, err
 	}
-
 	refreshToken, err := h.TokenGenerator.CreateRefreshToken(data.UserID, data.Email)
 	if err != nil {
 		return nil, err
 	}
-
 	return &authpb.RefreshResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
@@ -92,6 +92,9 @@ func (h *AuthHandler) Refresh(ctx context.Context, req *authpb.RefreshRequest) (
 }
 
 func (h *AuthHandler) VerifyToken(ctx context.Context, req *authpb.VerifyTokenRequest) (*authpb.VerifyTokenResponse, error) {
+	if req.AccessToken == "" {
+		return nil, status.Error(codes.InvalidArgument, "access_token is required")
+	}
 	valid, data := h.TokenGenerator.ParseAccessToken(req.AccessToken)
 	if !valid {
 		return &authpb.VerifyTokenResponse{Valid: false}, nil
@@ -103,15 +106,13 @@ func (h *AuthHandler) VerifyToken(ctx context.Context, req *authpb.VerifyTokenRe
 }
 
 func (h *AuthHandler) GetUserByID(ctx context.Context, req *authpb.GetUserByIDRequest) (*authpb.GetUserByIDResponse, error) {
-	jwtData, ok := ctx.Value(server.ContextJWTKey{}).(*jwt.JWTData)
-	if !ok || jwtData == nil {
-		return nil, errors.New("unauthenticated: jwt data not found")
+	if req.UserId == 0 {
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
 	}
 
 	user, err := h.AuthService.UserRepository.FindByID(uint(req.UserId))
-
 	if err != nil || user == nil {
-		return nil, errors.New("user not found")
+		return nil, status.Error(codes.NotFound, "user not found")
 	}
 
 	return &authpb.GetUserByIDResponse{

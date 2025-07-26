@@ -67,3 +67,11 @@ func (h *GRPCHandler) GetStats(ctx context.Context, req *statpb.GetStatsRequest)
 
 	return &resp, nil
 }
+
+func (h *GRPCHandler) AddClick(ctx context.Context, req *statpb.AddClickRequest) (*statpb.Empty, error) {
+	if req.LinkId == 0 {
+		return nil, status.Error(codes.InvalidArgument, "link_id is required")
+	}
+	h.Repo.AddClick(uint(req.LinkId), uint(req.UserId))
+	return &statpb.Empty{}, nil
+}

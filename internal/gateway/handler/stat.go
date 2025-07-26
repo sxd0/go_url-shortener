@@ -66,6 +66,10 @@ func (h *StatHandler) GetStats() http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp.Stats)
+		stats := resp.Stats
+		if stats == nil {
+			stats = []*statpb.Stat{}
+		}
+		json.NewEncoder(w).Encode(stats)
 	}
 }

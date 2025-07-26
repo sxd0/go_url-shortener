@@ -54,13 +54,25 @@ func (s *LinkService) GetAllLinks(ctx context.Context, userID uint, limit int, o
 	return links, count, nil
 }
 
-func (s *LinkService) UpdateLink(ctx context.Context, id uint, url string, hash string) (*model.Link, error) {
-	link, err := s.repo.GetByID(id)
-	if err != nil {
-		return nil, err
+func (s *LinkService) UpdateLink(ctx context.Context, id uint, url, hash string) (*model.Link, error) {
+	var link *model.Link
+	var err error
+
+	if id != 0 {
+		link, err = s.repo.GetByID(id)
+	} else if hash != "" {
+		link, err = s.repo.GetByHash(hash)
+	} else {
+		return nil, errors.New("either id or hash is required")
 	}
+	if err != nil || link == nil {
+		return nil, errors.New("link not found")
+	}
+
 	link.Url = url
-	link.Hash = hash
+	if hash != "" {
+		link.Hash = hash
+	}
 	return s.repo.Update(link)
 }
 

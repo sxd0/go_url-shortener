@@ -6,6 +6,7 @@ option go_package = "github.com/sxd0/go_url-shortener/proto/gen/go/statpb";
 
 service StatService {
   rpc GetStats(GetStatsRequest) returns (GetStatsResponseList);
+  rpc AddClick (AddClickRequest) returns (Empty);
 }
 
 message GetStatsRequest {
@@ -22,3 +23,10 @@ message Stat {
 message GetStatsResponseList {
   repeated Stat stats = 1;
 }
+
+message AddClickRequest {
+  uint32 link_id = 1;
+  uint64 user_id = 2;
+}
+
+message Empty {}

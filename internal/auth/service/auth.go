@@ -4,11 +4,11 @@ import (
 	"github.com/sxd0/go_url-shortener/internal/auth/model"
 	"github.com/sxd0/go_url-shortener/pkg/di"
 	"github.com/sxd0/go_url-shortener/pkg/logger"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type AuthService struct {
@@ -39,6 +39,7 @@ func (service *AuthService) Register(email, password, name string) (string, erro
 		logger.Log.Warn("user already exists", zap.String("email", email))
 		return "", status.Error(codes.AlreadyExists, "user exists")
 	}
+
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		logger.Log.Warn("wrong credentials", zap.String("email", email))
@@ -55,4 +56,11 @@ func (service *AuthService) Register(email, password, name string) (string, erro
 		return "", status.Error(codes.Internal, "failed to create user")
 	}
 	return user.Email, nil
+}
+
+func (service *AuthService) VerifyRefreshToken(tokenUserID uint, reqUserID uint) error {
+	if tokenUserID != reqUserID {
+		return status.Error(codes.PermissionDenied, "token does not belong to the user")
+	}
+	return nil
 }
