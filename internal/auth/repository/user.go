@@ -15,10 +15,17 @@ func NewUserRepository(database *gorm.DB) *UserRepository {
 	}
 }
 
+func (repo *UserRepository) mustDB() *gorm.DB {
+	if repo.Database == nil {
+		panic("UserRepository.Database is nil")
+	}
+	return repo.Database
+}
+
 func (repo *UserRepository) Create(user *model.User) (*model.User, error) {
-	result := repo.Database.Create(user)
-	if result.Error != nil {
-		return nil, result.Error
+	db := repo.mustDB()
+	if err := db.Create(user).Error; err != nil {
+		return nil, err
 	}
 	return user, nil
 }

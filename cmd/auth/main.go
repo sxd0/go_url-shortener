@@ -15,6 +15,7 @@ import (
 	"github.com/sxd0/go_url-shortener/internal/auth/repository"
 	"github.com/sxd0/go_url-shortener/internal/auth/server"
 	"github.com/sxd0/go_url-shortener/internal/auth/service"
+	"github.com/sxd0/go_url-shortener/pkg/logger"
 	"github.com/sxd0/go_url-shortener/proto/gen/go/authpb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -23,7 +24,13 @@ import (
 func main() {
 	cfg := configs.LoadConfig()
 
+	logger.InitLogger()
+	defer logger.SyncLogger()
+
 	dbConn := auth.NewDb(cfg)
+	if dbConn == nil {
+		log.Fatal("nil *gorm.DB returned")
+	}
 	userRepo := repository.NewUserRepository(dbConn)
 	authService := service.NewAuthService(userRepo)
 

@@ -15,9 +15,7 @@ func NewRouter(deps Deps) http.Handler {
 	r.Use(middleware.CORSMiddleware)
 
 	r.Route("/auth", func(r chi.Router) {
-		authHandler := handler.NewAuthHandler(handler.Deps{
-			AuthClient: deps.AuthClient,
-		})
+		authHandler := handler.NewAuthHandler(deps.AuthClient)
 
 		r.Post("/login", authHandler.Login())
 		r.Post("/register", authHandler.Register())
@@ -27,9 +25,7 @@ func NewRouter(deps Deps) http.Handler {
 	r.Route("/link", func(r chi.Router) {
 		r.Use(middleware.JWTMiddleware(deps.Verifier))
 
-		linkHandler := handler.NewLinkHandler(handler.Deps{
-			LinkClient: deps.LinkClient,
-		})
+		linkHandler := handler.NewLinkHandler(deps.LinkClient)
 
 		r.Get("/", linkHandler.List())
 		r.Post("/", linkHandler.Create())

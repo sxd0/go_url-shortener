@@ -15,17 +15,17 @@ func NewGRPCServerWithMiddleware(jwtService *jwt.JWT, serverOptions ...grpc.Serv
 
 	opts := []grpc.ServerOption{
 		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
-			NewJWTUnaryInterceptor(jwtService),
-			grpc_zap.UnaryServerInterceptor(logger),
+			// ВАЖНО: recovery должен быть СНАЧАЛА, чтобы ловить паники из всех нижележащих интерсепторов
 			grpc_recovery.UnaryServerInterceptor(),
+			grpc_zap.UnaryServerInterceptor(logger),
+			NewJWTUnaryInterceptor(jwtService),
 		)),
 		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(
-			grpc_zap.StreamServerInterceptor(logger),
 			grpc_recovery.StreamServerInterceptor(),
+			grpc_zap.StreamServerInterceptor(logger),
 		)),
 	}
 
 	opts = append(opts, serverOptions...)
-
 	return grpc.NewServer(opts...)
 }

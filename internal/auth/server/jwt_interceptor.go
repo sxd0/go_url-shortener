@@ -14,52 +14,61 @@ import (
 type ContextJWTKey struct{}
 
 func NewJWTUnaryInterceptor(jwtService *jwt.JWT) grpc.UnaryServerInterceptor {
-	return func(
-		ctx context.Context,
-		req interface{},
-		info *grpc.UnaryServerInfo,
-		handler grpc.UnaryHandler,
-	) (interface{}, error) {
+	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+		// 0) защитимся от ошибочной DI
+		if jwtService == nil {
+			return nil, status.Error(codes.Internal, "jwt service not initialized")
+		}
+
+		// 1) публичные методы — сразу пропускаем, НИЧЕГО не читаем из metadata
 		if isPublicMethod(info.FullMethod) {
 			return handler(ctx, req)
 		}
 
+		// 2) безопасно читаем метаданные
 		md, ok := metadata.FromIncomingContext(ctx)
 		if !ok {
 			return nil, status.Error(codes.Unauthenticated, "metadata is not provided")
 		}
-
-		authHeader, ok := md["authorization"]
-		if !ok || len(authHeader) == 0 {
+		values := md.Get("authorization")
+		if len(values) == 0 {
 			return nil, status.Error(codes.Unauthenticated, "authorization token is not provided")
 		}
 
-		token := parseBearerToken(authHeader[0])
+		token := parseBearer(values[0])
 		if token == "" {
 			return nil, status.Error(codes.Unauthenticated, "invalid authorization token format")
 		}
 
-		valid, jwtData := jwtService.ParseAccessToken(token)
+		// 3) валидируем access‑токен (RS256)
+		valid, data := jwtService.ParseAccessToken(token)
 		if !valid {
 			return nil, status.Error(codes.Unauthenticated, "invalid or expired access token")
 		}
 
-		ctx = context.WithValue(ctx, ContextJWTKey{}, jwtData)
-
+		// 4) складываем данные в контекст
+		ctx = context.WithValue(ctx, ContextJWTKey{}, data)
 		return handler(ctx, req)
 	}
 }
 
-func isPublicMethod(method string) bool {
-	return method == "/authpb.AuthService/Login" ||
-		method == "/authpb.AuthService/Register" ||
-		method == "/authpb.AuthService/Refresh" ||
-		method == "/authpb.AuthService/VerifyToken"
+func isPublicMethod(full string) bool {
+	// допускаем разные имена пакетов/сервисов; ориентируемся на суффикс
+	switch {
+	case strings.HasSuffix(full, "/Register"),
+		strings.HasSuffix(full, "/Login"),
+		strings.HasSuffix(full, "/Refresh"),
+		strings.HasSuffix(full, "/VerifyToken"):
+		return true
+	default:
+		return false
+	}
 }
 
-func parseBearerToken(header string) string {
-	if !strings.HasPrefix(header, "Bearer ") {
-		return ""
+func parseBearer(h string) string {
+	const p = "Bearer "
+	if strings.HasPrefix(h, p) {
+		return strings.TrimPrefix(h, p)
 	}
-	return strings.TrimPrefix(header, "Bearer ")
+	return ""
 }
