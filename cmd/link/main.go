@@ -25,8 +25,10 @@ func main() {
 	repo := repository.NewLinkRepository(db)
 	srv := service.NewLinkService(repo)
 
+	h := handler.NewLinkHandler(srv)
+	
 	grpcServer := server.NewGRPCServerWithMiddleware()
-	handler.RegisterLinkHandler(grpcServer, srv)
+	handler.RegisterLinkHandler(grpcServer, h)
 
 	reflection.Register(grpcServer)
 

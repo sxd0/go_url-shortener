@@ -16,15 +16,13 @@ type StatHandler struct {
 }
 
 func NewStatHandler(deps Deps) *StatHandler {
-	return &StatHandler{
-		client: deps.StatClient,
-	}
+	return &StatHandler{client: deps.StatClient}
 }
 
 func (h *StatHandler) GetStats() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID, ok := r.Context().Value(middleware.UserIDKey).(uint)
-		if !ok {
+		uid, err := middleware.GetUserIDFromContext(r.Context())
+		if err != nil {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -32,36 +30,25 @@ func (h *StatHandler) GetStats() http.HandlerFunc {
 		from := r.URL.Query().Get("from")
 		to := r.URL.Query().Get("to")
 		by := r.URL.Query().Get("by")
-
-		if from == "" || to == "" || by == "" {
-			http.Error(w, "missing from/to/by parameters", http.StatusBadRequest)
-			return
+		if by == "" {
+			by = "day"
 		}
-		if _, err := time.Parse("2006-01-02", from); err != nil {
-			http.Error(w, "invalid from date", http.StatusBadRequest)
-			return
-		}
-		if _, err := time.Parse("2006-01-02", to); err != nil {
-			http.Error(w, "invalid to date", http.StatusBadRequest)
-			return
-		}
-		if by != "day" && by != "month" {
-			http.Error(w, "invalid by parameter", http.StatusBadRequest)
-			return
+		if from == "" || to == "" {
+			now := time.Now().UTC()
+			to = now.Format("2006-01-02")
+			from = now.AddDate(0, 0, -30).Format("2006-01-02")
 		}
 
+		ctx := metadata.AppendToOutgoingContext(r.Context(), "x-user-id", strconv.FormatUint(uint64(uid), 10))
 		req := &statpb.GetStatsRequest{
 			From: from,
 			To:   to,
 			By:   by,
 		}
 
-		md := metadata.Pairs("x-user-id", strconv.FormatUint(uint64(userID), 10))
-		ctx := metadata.NewOutgoingContext(r.Context(), md)
-
 		resp, err := h.client.GetStats(ctx, req)
 		if err != nil {
-			http.Error(w, "failed to get stats: "+err.Error(), http.StatusInternalServerError)
+			middleware.WriteGRPCError(w, err)
 			return
 		}
 
@@ -70,6 +57,6 @@ func (h *StatHandler) GetStats() http.HandlerFunc {
 		if stats == nil {
 			stats = []*statpb.Stat{}
 		}
-		json.NewEncoder(w).Encode(stats)
+		_ = json.NewEncoder(w).Encode(stats)
 	}
 }

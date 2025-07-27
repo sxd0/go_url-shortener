@@ -5,9 +5,8 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	httpx "github.com/sxd0/go_url-shortener/internal/gateway/http"
 	"github.com/sxd0/go_url-shortener/internal/gateway/middleware"
-	"github.com/sxd0/go_url-shortener/pkg/req"
-	"github.com/sxd0/go_url-shortener/pkg/res"
 	"github.com/sxd0/go_url-shortener/proto/gen/go/linkpb"
 )
 
@@ -19,58 +18,61 @@ func NewLinkHandler(client linkpb.LinkServiceClient) *LinkHandler {
 	return &LinkHandler{Client: client}
 }
 
-type CreateLinkRequest struct {
+type createReq struct {
 	Url string `json:"url" validate:"required,url"`
-}
-
-type UpdateLinkRequest struct {
-	Hash   string `json:"hash" validate:"required"`
-	NewUrl string `json:"new_url" validate:"required,url"`
 }
 
 func (h *LinkHandler) Create() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		payload, err := req.HandleBody[CreateLinkRequest](&w, r)
-		if err != nil {
-			return
-		}
-
-		userID, err := middleware.GetUserIDFromContext(r.Context())
+		uid, err := middleware.GetUserIDFromContext(r.Context())
 		if err != nil {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		resp, err := h.Client.CreateLink(r.Context(), &linkpb.CreateLinkRequest{
-			Url:    payload.Url,
-			UserId: uint32(userID),
-		})
+		body, err := httpx.Decode[createReq](r)
 		if err != nil {
-			http.Error(w, "failed to create link: "+err.Error(), http.StatusInternalServerError)
+			http.Error(w, "invalid json", http.StatusBadRequest)
+			return
+		}
+		if err := httpx.Validate(body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		res.Json(w, resp, http.StatusOK)
+		resp, err := h.Client.CreateLink(r.Context(), &linkpb.CreateLinkRequest{
+			Url:    body.Url,
+			UserId: uint32(uid),
+		})
+		if err != nil {
+			middleware.WriteGRPCError(w, err)
+			return
+		}
+		httpx.JSON(w, resp, http.StatusOK)
 	}
 }
 
 func (h *LinkHandler) List() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID, err := middleware.GetUserIDFromContext(r.Context())
+		uid, err := middleware.GetUserIDFromContext(r.Context())
 		if err != nil {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
 
 		resp, err := h.Client.GetAllLinks(r.Context(), &linkpb.GetAllLinksRequest{
-			UserId: uint32(userID),
+			UserId: uint32(uid),
+			Limit:  100,
+			Offset: 0,
 		})
 		if err != nil {
-			http.Error(w, "failed to get links: "+err.Error(), http.StatusInternalServerError)
+			middleware.WriteGRPCError(w, err)
 			return
 		}
-
-		res.Json(w, resp, http.StatusOK)
+		httpx.JSON(w, map[string]any{
+			"total": resp.Total,
+			"items": resp.Links,
+		}, http.StatusOK)
 	}
 }
 
@@ -81,31 +83,42 @@ func (h *LinkHandler) Get() http.HandlerFunc {
 			Hash: hash,
 		})
 		if err != nil {
-			http.Error(w, "failed to get link: "+err.Error(), http.StatusInternalServerError)
+			middleware.WriteGRPCError(w, err)
 			return
 		}
-
-		res.Json(w, resp, http.StatusOK)
+		httpx.JSON(w, resp, http.StatusOK)
 	}
+}
+
+type updateReq struct {
+	Id   uint32 `json:"id"`
+	Hash string `json:"hash"`
+	Url  string `json:"url" validate:"required,url"`
 }
 
 func (h *LinkHandler) Update() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		payload, err := req.HandleBody[UpdateLinkRequest](&w, r)
+		body, err := httpx.Decode[updateReq](r)
 		if err != nil {
+			http.Error(w, "invalid json", http.StatusBadRequest)
+			return
+		}
+		if err := httpx.Validate(body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		resp, err := h.Client.UpdateLink(r.Context(), &linkpb.UpdateLinkRequest{
-			Hash: payload.Hash,
-			Url:  payload.NewUrl,
+			Id:   body.Id,
+			Url:  body.Url,
+			Hash: body.Hash,
 		})
 		if err != nil {
-			http.Error(w, "failed to update link: "+err.Error(), http.StatusInternalServerError)
+			middleware.WriteGRPCError(w, err)
 			return
 		}
 
-		res.Json(w, resp, http.StatusOK)
+		httpx.JSON(w, resp, http.StatusOK)
 	}
 }
 
@@ -113,7 +126,7 @@ func (h *LinkHandler) Delete() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		idStr := chi.URLParam(r, "id")
 		id, err := strconv.Atoi(idStr)
-		if err != nil {
+		if err != nil || id <= 0 {
 			http.Error(w, "invalid id", http.StatusBadRequest)
 			return
 		}
@@ -121,27 +134,21 @@ func (h *LinkHandler) Delete() http.HandlerFunc {
 			Id: uint32(id),
 		})
 		if err != nil {
-			http.Error(w, "failed to delete link: "+err.Error(), http.StatusInternalServerError)
+			middleware.WriteGRPCError(w, err)
 			return
 		}
-
-		res.Json(w, map[string]string{"status": "deleted"}, http.StatusOK)
+		httpx.JSON(w, map[string]string{"status": "deleted"}, http.StatusOK)
 	}
 }
 
 func (h *LinkHandler) DeleteByHash() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		hash := chi.URLParam(r, "hash")
-		if hash == "" {
-			http.Error(w, "invalid hash", http.StatusBadRequest)
-			return
-		}
-
 		getResp, err := h.Client.GetLinkByHash(r.Context(), &linkpb.GetLinkByHashRequest{
 			Hash: hash,
 		})
-		if err != nil || getResp == nil || getResp.Link == nil {
-			http.Error(w, "link not found", http.StatusNotFound)
+		if err != nil || getResp.GetLink() == nil {
+			middleware.WriteGRPCError(w, err)
 			return
 		}
 
@@ -149,9 +156,9 @@ func (h *LinkHandler) DeleteByHash() http.HandlerFunc {
 			Id: getResp.Link.Id,
 		})
 		if err != nil {
-			http.Error(w, "failed to delete link: "+err.Error(), http.StatusInternalServerError)
+			middleware.WriteGRPCError(w, err)
 			return
 		}
-		res.Json(w, map[string]string{"status": "deleted"}, http.StatusOK)
+		httpx.JSON(w, map[string]string{"status": "deleted"}, http.StatusOK)
 	}
 }

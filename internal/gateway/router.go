@@ -4,57 +4,63 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/sxd0/go_url-shortener/internal/gateway/configs"
 	"github.com/sxd0/go_url-shortener/internal/gateway/handler"
 	"github.com/sxd0/go_url-shortener/internal/gateway/middleware"
 )
 
-func NewRouter(deps Deps) http.Handler {
+func NewRouter(deps Deps, cfg *configs.Config) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.LoggingMiddleware)
-	r.Use(middleware.CORSMiddleware)
+	r.Use(middleware.CORSMiddlewareWithCfg(cfg))
 
 	// AUTH
 	r.Route("/auth", func(r chi.Router) {
-		authHandler := handler.NewAuthHandler(deps.AuthClient)
+		h := handler.NewAuthHandler(deps.AuthClient)
 
-		r.Post("/register", authHandler.Register())
-		r.Post("/login", authHandler.Login())
-		r.Post("/refresh", authHandler.Refresh())
+		r.Post("/register", h.Register())
+		r.Post("/login", h.Login())
+		r.Post("/refresh", h.Refresh())
+		r.Post("/validate", h.Validate())
 
-		r.Post("/validate", authHandler.Validate())
 		r.With(middleware.JWTMiddleware(deps.Verifier)).
-			Get("/user/{id}", authHandler.GetUserByID())
+			Get("/user/{id}", h.GetUserByID())
 	})
 
-	// LINKS
+	// LINK
 	r.Route("/link", func(r chi.Router) {
+		h := handler.NewLinkHandler(deps.LinkClient)
+
 		r.Use(middleware.JWTMiddleware(deps.Verifier))
-		linkHandler := handler.NewLinkHandler(deps.LinkClient)
 
-		r.Post("/", linkHandler.Create())
-		// r.Get("/", linkHandler.GetAll())
-
-		// r.Get("/{hash}", linkHandler.GetByHash())
-
-		r.Patch("/", linkHandler.Update())
-
-		r.Delete("/{id}", linkHandler.Delete())
-		r.Delete("/hash/{hash}", linkHandler.DeleteByHash())
+		r.Post("/", h.Create())
+		r.Get("/", h.List())
+		r.Get("/{hash}", h.Get())
+		r.Patch("/", h.Update())
+		r.Delete("/{id}", h.Delete())
+		r.Delete("/hash/{hash}", h.DeleteByHash())
 	})
 
-	// REDIRECT
-	r.Get("/r/{hash}", handler.RedirectHandler(deps.LinkClient, deps.StatClient))
+	// Redirect
+	r.Get("/r/{hash}", handler.RedirectHandler(handler.Deps{
+		LinkClient: deps.LinkClient,
+		StatClient: deps.StatClient,
+		Verifier:   deps.Verifier,
+	}))
 
 	// STATS
 	r.Route("/stat", func(r chi.Router) {
-		r.Use(middleware.JWTMiddleware(deps.Verifier))
-
-		statHandler := handler.NewStatHandler(handler.Deps{
+		h := handler.NewStatHandler(handler.Deps{
 			StatClient: deps.StatClient,
 		})
+		r.Use(middleware.JWTMiddleware(deps.Verifier))
+		r.Get("/", h.GetStats())
+	})
 
-		r.Get("/", statHandler.GetStats())
+	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
 	})
 
 	return r

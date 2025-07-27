@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/sxd0/go_url-shortener/pkg/req"
-	"github.com/sxd0/go_url-shortener/pkg/res"
+	httpx "github.com/sxd0/go_url-shortener/internal/gateway/http"
+	"github.com/sxd0/go_url-shortener/internal/gateway/middleware"
 	"github.com/sxd0/go_url-shortener/proto/gen/go/authpb"
 )
 
@@ -19,81 +19,111 @@ func NewAuthHandler(client authpb.AuthServiceClient) *AuthHandler {
 	return &AuthHandler{Client: client}
 }
 
+type registerReq struct {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=6"`
+	Name     string `json:"name" validate:"required"`
+}
+
 func (h *AuthHandler) Register() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body, err := req.HandleBody[authpb.RegisterRequest](&w, r)
+		body, err := httpx.Decode[registerReq](r)
 		if err != nil {
+			http.Error(w, "invalid json", http.StatusBadRequest)
+			return
+		}
+		if err := httpx.Validate(body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		resp, err := h.Client.Register(r.Context(), body)
+		resp, err := h.Client.Register(r.Context(), &authpb.RegisterRequest{
+			Email:    body.Email,
+			Password: body.Password,
+			Name:     body.Name,
+		})
 		if err != nil {
-			http.Error(w, "failed to register: "+err.Error(), http.StatusBadRequest)
+			middleware.WriteGRPCError(w, err)
 			return
 		}
 
-		res.Json(w, resp, http.StatusCreated)
+		httpx.JSON(w, resp, http.StatusCreated)
 	}
+}
+
+type loginReq struct {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required"`
 }
 
 func (h *AuthHandler) Login() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body, err := req.HandleBody[authpb.LoginRequest](&w, r)
+		body, err := httpx.Decode[loginReq](r)
 		if err != nil {
+			http.Error(w, "invalid json", http.StatusBadRequest)
+			return
+		}
+		if err := httpx.Validate(body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		resp, err := h.Client.Login(r.Context(), body)
+		resp, err := h.Client.Login(r.Context(), &authpb.LoginRequest{
+			Email:    body.Email,
+			Password: body.Password,
+		})
 		if err != nil {
-			http.Error(w, "failed to login: "+err.Error(), http.StatusUnauthorized)
+			middleware.WriteGRPCError(w, err)
 			return
 		}
-
-		res.Json(w, resp, http.StatusOK)
+		httpx.JSON(w, resp, http.StatusOK)
 	}
+}
+
+type refreshReq struct {
+	RefreshToken string `json:"refresh_token" validate:"required"`
 }
 
 func (h *AuthHandler) Refresh() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body, err := req.HandleBody[authpb.RefreshRequest](&w, r)
+		body, err := httpx.Decode[refreshReq](r)
 		if err != nil {
+			http.Error(w, "invalid json", http.StatusBadRequest)
+			return
+		}
+		if err := httpx.Validate(body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		resp, err := h.Client.Refresh(r.Context(), body)
+		resp, err := h.Client.Refresh(r.Context(), &authpb.RefreshRequest{
+			RefreshToken: body.RefreshToken,
+		})
 		if err != nil {
-			http.Error(w, "failed to refresh token: "+err.Error(), http.StatusUnauthorized)
+			middleware.WriteGRPCError(w, err)
 			return
 		}
-
-		res.Json(w, resp, http.StatusOK)
+		httpx.JSON(w, resp, http.StatusOK)
 	}
 }
 
 func (h *AuthHandler) Validate() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		auth := r.Header.Get("Authorization")
-		if !strings.HasPrefix(auth, "Bearer ") {
+		if auth == "" || !strings.HasPrefix(auth, "Bearer ") {
 			http.Error(w, "missing bearer token", http.StatusUnauthorized)
 			return
 		}
 		token := strings.TrimPrefix(auth, "Bearer ")
+
 		resp, err := h.Client.VerifyToken(r.Context(), &authpb.VerifyTokenRequest{
 			AccessToken: token,
 		})
 		if err != nil {
-			http.Error(w, "failed to verify token: "+err.Error(), http.StatusUnauthorized)
+			middleware.WriteGRPCError(w, err)
 			return
 		}
-		type out struct {
-			Valid  bool   `json:"valid"`
-			UserID uint64 `json:"user_id,omitempty"`
-		}
-		if !resp.Valid {
-			res.Json(w, out{Valid: false}, http.StatusOK)
-			return
-		}
-		res.Json(w, out{Valid: true, UserID: resp.UserId}, http.StatusOK)
+		httpx.JSON(w, resp, http.StatusOK)
 	}
 }
 
@@ -105,13 +135,17 @@ func (h *AuthHandler) GetUserByID() http.HandlerFunc {
 			http.Error(w, "invalid id", http.StatusBadRequest)
 			return
 		}
-		resp, err := h.Client.GetUserByID(r.Context(), &authpb.GetUserByIDRequest{
+
+		// Authorization
+		ctx := middleware.WithAuthMD(r.Context(), r)
+
+		resp, err := h.Client.GetUserByID(ctx, &authpb.GetUserByIDRequest{
 			UserId: id,
 		})
 		if err != nil {
-			http.Error(w, "failed to get user: "+err.Error(), http.StatusNotFound)
+			middleware.WriteGRPCError(w, err)
 			return
 		}
-		res.Json(w, resp, http.StatusOK)
+		httpx.JSON(w, resp, http.StatusOK)
 	}
 }

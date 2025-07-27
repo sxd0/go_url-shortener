@@ -7,11 +7,16 @@ import (
 	"github.com/sxd0/go_url-shortener/internal/gateway"
 	"github.com/sxd0/go_url-shortener/internal/gateway/configs"
 	"github.com/sxd0/go_url-shortener/internal/gateway/jwt"
+	"github.com/sxd0/go_url-shortener/internal/gateway/logger"
 	"github.com/sxd0/go_url-shortener/internal/gateway/service"
 )
 
 func main() {
 	cfg := configs.LoadConfig()
+
+	// init zap
+	logger.Init()
+	defer logger.Sync()
 
 	// JWT Verifier
 	verifier := jwt.NewVerifier(cfg.PublicKey)
@@ -19,28 +24,25 @@ func main() {
 	// gRPC clients
 	authService, err := service.NewAuthService(cfg.AuthGRPCAddr)
 	if err != nil {
-		log.Fatal("cannot init AuthService:", err)
+		log.Fatalf("failed to init auth client: %v", err)
 	}
-
 	linkService, err := service.NewLinkService(cfg.LinkGRPCAddr)
 	if err != nil {
-		log.Fatal("cannot init LinkService:", err)
+		log.Fatalf("failed to init link client: %v", err)
 	}
-
 	statService, err := service.NewStatService(cfg.StatGRPCAddr)
 	if err != nil {
-		log.Fatal("cannot init StatService:", err)
+		log.Fatalf("failed to init stat client: %v", err)
 	}
 
-	// Gateway Router
+	// Router
 	router := gateway.NewRouter(gateway.Deps{
 		Verifier:   verifier,
 		AuthClient: authService.Client(),
 		LinkClient: linkService.Client(),
 		StatClient: statService.Client(),
-	})
+	}, cfg)
 
-	// Run HTTP server
 	log.Println("Gateway listening on port:", cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, router); err != nil {
 		log.Fatal("server failed:", err)
