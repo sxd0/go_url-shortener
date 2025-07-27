@@ -15,7 +15,9 @@ import (
 	"github.com/sxd0/go_url-shortener/internal/stat/repository"
 	"github.com/sxd0/go_url-shortener/internal/stat/server"
 	"github.com/sxd0/go_url-shortener/internal/stat/service"
-	"github.com/sxd0/go_url-shortener/pkg/event"
+
+	"github.com/sxd0/go_url-shortener/internal/stat/event"
+
 	"github.com/sxd0/go_url-shortener/proto/gen/go/statpb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"

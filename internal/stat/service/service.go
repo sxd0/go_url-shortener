@@ -5,16 +5,15 @@ import (
 
 	eventPayload "github.com/sxd0/go_url-shortener/internal/stat/event"
 	"github.com/sxd0/go_url-shortener/internal/stat/repository"
-	"github.com/sxd0/go_url-shortener/pkg/event"
 )
 
 type StatServiceDeps struct {
-	EventBus       *event.EventBus
+	EventBus       *eventPayload.EventBus
 	StatRepository *repository.StatRepository
 }
 
 type StatService struct {
-	EventBus       *event.EventBus
+	EventBus       *eventPayload.EventBus
 	StatRepository *repository.StatRepository
 }
 
@@ -27,7 +26,7 @@ func NewStatService(deps *StatServiceDeps) *StatService {
 
 func (s *StatService) AddClick() {
 	for msg := range s.EventBus.Subscribe() {
-		if msg.Type != event.EventLinkVisited {
+		if msg.Type != eventPayload.EventLinkVisited {
 			continue
 		}
 

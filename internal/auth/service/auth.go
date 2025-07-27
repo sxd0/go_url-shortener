@@ -1,9 +1,9 @@
 package service
 
 import (
+	"github.com/sxd0/go_url-shortener/internal/auth/di"
+	"github.com/sxd0/go_url-shortener/internal/auth/logger"
 	"github.com/sxd0/go_url-shortener/internal/auth/model"
-	"github.com/sxd0/go_url-shortener/pkg/di"
-	"github.com/sxd0/go_url-shortener/pkg/logger"
 
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
