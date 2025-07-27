@@ -36,6 +36,6 @@ func (s *StatService) AddClick() {
 			continue
 		}
 
-		s.StatRepository.AddClick(payload.LinkID, payload.UserID)
+		s.StatRepository.AddClick(uint32(payload.LinkID), uint64(payload.UserID))
 	}
 }
