@@ -39,7 +39,9 @@ func (h *StatHandler) GetStats() http.HandlerFunc {
 			from = now.AddDate(0, 0, -30).Format("2006-01-02")
 		}
 
-		ctx := metadata.AppendToOutgoingContext(r.Context(), "x-user-id", strconv.FormatUint(uint64(uid), 10))
+		ctx := middleware.AttachCommonMD(r.Context(), r)
+		ctx = metadata.AppendToOutgoingContext(ctx, "x-user-id", strconv.FormatUint(uint64(uid), 10))
+
 		req := &statpb.GetStatsRequest{
 			From: from,
 			To:   to,

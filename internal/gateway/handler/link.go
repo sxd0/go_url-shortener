@@ -40,7 +40,8 @@ func (h *LinkHandler) Create() http.HandlerFunc {
 			return
 		}
 
-		resp, err := h.Client.CreateLink(r.Context(), &linkpb.CreateLinkRequest{
+		ctx := middleware.AttachCommonMD(r.Context(), r)
+		resp, err := h.Client.CreateLink(ctx, &linkpb.CreateLinkRequest{
 			Url:    body.Url,
 			UserId: uint32(uid),
 		})
@@ -60,7 +61,8 @@ func (h *LinkHandler) List() http.HandlerFunc {
 			return
 		}
 
-		resp, err := h.Client.GetAllLinks(r.Context(), &linkpb.GetAllLinksRequest{
+		ctx := middleware.AttachCommonMD(r.Context(), r)
+		resp, err := h.Client.GetAllLinks(ctx, &linkpb.GetAllLinksRequest{
 			UserId: uint32(uid),
 			Limit:  100,
 			Offset: 0,
@@ -79,7 +81,9 @@ func (h *LinkHandler) List() http.HandlerFunc {
 func (h *LinkHandler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		hash := chi.URLParam(r, "hash")
-		resp, err := h.Client.GetLinkByHash(r.Context(), &linkpb.GetLinkByHashRequest{
+		ctx := middleware.AttachCommonMD(r.Context(), r)
+
+		resp, err := h.Client.GetLinkByHash(ctx, &linkpb.GetLinkByHashRequest{
 			Hash: hash,
 		})
 		if err != nil {
@@ -91,8 +95,8 @@ func (h *LinkHandler) Get() http.HandlerFunc {
 }
 
 type updateReq struct {
-	Id   uint32 `json:"id"`
-	Hash string `json:"hash"`
+	Id   uint32 `json:"id"`   // optional
+	Hash string `json:"hash"` // optional
 	Url  string `json:"url" validate:"required,url"`
 }
 
@@ -108,7 +112,8 @@ func (h *LinkHandler) Update() http.HandlerFunc {
 			return
 		}
 
-		resp, err := h.Client.UpdateLink(r.Context(), &linkpb.UpdateLinkRequest{
+		ctx := middleware.AttachCommonMD(r.Context(), r)
+		resp, err := h.Client.UpdateLink(ctx, &linkpb.UpdateLinkRequest{
 			Id:   body.Id,
 			Url:  body.Url,
 			Hash: body.Hash,
@@ -130,7 +135,8 @@ func (h *LinkHandler) Delete() http.HandlerFunc {
 			http.Error(w, "invalid id", http.StatusBadRequest)
 			return
 		}
-		_, err = h.Client.DeleteLink(r.Context(), &linkpb.DeleteLinkRequest{
+		ctx := middleware.AttachCommonMD(r.Context(), r)
+		_, err = h.Client.DeleteLink(ctx, &linkpb.DeleteLinkRequest{
 			Id: uint32(id),
 		})
 		if err != nil {
@@ -144,7 +150,9 @@ func (h *LinkHandler) Delete() http.HandlerFunc {
 func (h *LinkHandler) DeleteByHash() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		hash := chi.URLParam(r, "hash")
-		getResp, err := h.Client.GetLinkByHash(r.Context(), &linkpb.GetLinkByHashRequest{
+
+		ctx := middleware.AttachCommonMD(r.Context(), r)
+		getResp, err := h.Client.GetLinkByHash(ctx, &linkpb.GetLinkByHashRequest{
 			Hash: hash,
 		})
 		if err != nil || getResp.GetLink() == nil {
@@ -152,7 +160,7 @@ func (h *LinkHandler) DeleteByHash() http.HandlerFunc {
 			return
 		}
 
-		_, err = h.Client.DeleteLink(r.Context(), &linkpb.DeleteLinkRequest{
+		_, err = h.Client.DeleteLink(ctx, &linkpb.DeleteLinkRequest{
 			Id: getResp.Link.Id,
 		})
 		if err != nil {

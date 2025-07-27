@@ -7,9 +7,14 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-func WithAuthMD(ctx context.Context, r *http.Request) context.Context {
+func AttachCommonMD(ctx context.Context, r *http.Request) context.Context {
+	// Authorization
 	if v := r.Header.Get("Authorization"); v != "" {
-		return metadata.AppendToOutgoingContext(ctx, "authorization", v)
+		ctx = metadata.AppendToOutgoingContext(ctx, "authorization", v)
+	}
+	// X-Request-ID
+	if rid := GetRequestIDFromContext(ctx); rid != "" {
+		ctx = metadata.AppendToOutgoingContext(ctx, "x-request-id", rid)
 	}
 	return ctx
 }

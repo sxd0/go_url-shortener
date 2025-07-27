@@ -12,6 +12,7 @@ import (
 func NewRouter(deps Deps, cfg *configs.Config) http.Handler {
 	r := chi.NewRouter()
 
+	r.Use(middleware.RequestIDMiddleware)
 	r.Use(middleware.LoggingMiddleware)
 	r.Use(middleware.CORSMiddlewareWithCfg(cfg))
 

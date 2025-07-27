@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/sxd0/go_url-shortener/internal/gateway/middleware"
 	"github.com/sxd0/go_url-shortener/proto/gen/go/linkpb"
 	"github.com/sxd0/go_url-shortener/proto/gen/go/statpb"
 )
@@ -27,7 +28,12 @@ func RedirectHandler(deps Deps) http.HandlerFunc {
 			return
 		}
 
-		linkResp, err := linkClient.GetLinkByHash(r.Context(), &linkpb.GetLinkByHashRequest{
+		ctx := deps.Verifier
+		_ = ctx
+
+		grpcCtx := middleware.AttachCommonMD(r.Context(), r)
+
+		linkResp, err := linkClient.GetLinkByHash(grpcCtx, &linkpb.GetLinkByHashRequest{
 			Hash: hash,
 		})
 		if err != nil || linkResp.GetLink() == nil {
@@ -49,7 +55,7 @@ func RedirectHandler(deps Deps) http.HandlerFunc {
 			}
 		}
 
-		_, _ = statClient.AddClick(r.Context(), &statpb.AddClickRequest{
+		_, _ = statClient.AddClick(grpcCtx, &statpb.AddClickRequest{
 			LinkId: linkResp.Link.Id,
 			UserId: userID,
 		})

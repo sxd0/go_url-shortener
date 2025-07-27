@@ -25,11 +25,14 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 
 		next.ServeHTTP(sw, r)
 
+		reqID := GetRequestIDFromContext(r.Context())
+
 		logger.Log.Info("http_request",
 			zap.Int("status", sw.status),
 			zap.String("method", r.Method),
 			zap.String("path", r.URL.Path),
 			zap.String("remote_addr", r.RemoteAddr),
+			zap.String("request_id", reqID),
 			zap.Duration("duration", time.Since(start)),
 		)
 	})

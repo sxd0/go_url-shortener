@@ -37,7 +37,8 @@ func (h *AuthHandler) Register() http.HandlerFunc {
 			return
 		}
 
-		resp, err := h.Client.Register(r.Context(), &authpb.RegisterRequest{
+		ctx := middleware.AttachCommonMD(r.Context(), r)
+		resp, err := h.Client.Register(ctx, &authpb.RegisterRequest{
 			Email:    body.Email,
 			Password: body.Password,
 			Name:     body.Name,
@@ -68,7 +69,8 @@ func (h *AuthHandler) Login() http.HandlerFunc {
 			return
 		}
 
-		resp, err := h.Client.Login(r.Context(), &authpb.LoginRequest{
+		ctx := middleware.AttachCommonMD(r.Context(), r)
+		resp, err := h.Client.Login(ctx, &authpb.LoginRequest{
 			Email:    body.Email,
 			Password: body.Password,
 		})
@@ -96,7 +98,8 @@ func (h *AuthHandler) Refresh() http.HandlerFunc {
 			return
 		}
 
-		resp, err := h.Client.Refresh(r.Context(), &authpb.RefreshRequest{
+		ctx := middleware.AttachCommonMD(r.Context(), r)
+		resp, err := h.Client.Refresh(ctx, &authpb.RefreshRequest{
 			RefreshToken: body.RefreshToken,
 		})
 		if err != nil {
@@ -116,7 +119,8 @@ func (h *AuthHandler) Validate() http.HandlerFunc {
 		}
 		token := strings.TrimPrefix(auth, "Bearer ")
 
-		resp, err := h.Client.VerifyToken(r.Context(), &authpb.VerifyTokenRequest{
+		ctx := middleware.AttachCommonMD(r.Context(), r)
+		resp, err := h.Client.VerifyToken(ctx, &authpb.VerifyTokenRequest{
 			AccessToken: token,
 		})
 		if err != nil {
@@ -136,9 +140,7 @@ func (h *AuthHandler) GetUserByID() http.HandlerFunc {
 			return
 		}
 
-		// Authorization
-		ctx := middleware.WithAuthMD(r.Context(), r)
-
+		ctx := middleware.AttachCommonMD(r.Context(), r)
 		resp, err := h.Client.GetUserByID(ctx, &authpb.GetUserByIDRequest{
 			UserId: id,
 		})
