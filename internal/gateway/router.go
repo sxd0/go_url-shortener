@@ -7,6 +7,7 @@ import (
 	"github.com/sxd0/go_url-shortener/internal/gateway/configs"
 	"github.com/sxd0/go_url-shortener/internal/gateway/handler"
 	"github.com/sxd0/go_url-shortener/internal/gateway/middleware"
+	"github.com/sxd0/go_url-shortener/internal/gateway/openapi"
 )
 
 func NewRouter(deps Deps, cfg *configs.Config) http.Handler {
@@ -15,6 +16,10 @@ func NewRouter(deps Deps, cfg *configs.Config) http.Handler {
 	r.Use(middleware.RequestIDMiddleware)
 	r.Use(middleware.LoggingMiddleware)
 	r.Use(middleware.CORSMiddlewareWithCfg(cfg))
+
+	// Docs
+	r.Get("/openapi.yaml", openapi.OpenAPIServeYAML)
+	r.Get("/docs", openapi.RedocHandler)
 
 	// AUTH
 	r.Route("/auth", func(r chi.Router) {
