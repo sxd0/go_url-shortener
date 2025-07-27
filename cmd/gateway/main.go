@@ -14,37 +14,33 @@ import (
 func main() {
 	cfg := configs.LoadConfig()
 
-	// init zap
-	logger.Init()
+	logger.InitFromEnv()
 	defer logger.Sync()
 
-	// JWT Verifier
 	verifier := jwt.NewVerifier(cfg.PublicKey)
 
-	// gRPC clients
-	authService, err := service.NewAuthService(cfg.AuthGRPCAddr)
+	authSvc, err := service.NewAuthService(cfg.AuthGRPCAddr)
 	if err != nil {
-		log.Fatalf("failed to init auth client: %v", err)
+		log.Fatalf("auth client: %v", err)
 	}
-	linkService, err := service.NewLinkService(cfg.LinkGRPCAddr)
+	linkSvc, err := service.NewLinkService(cfg.LinkGRPCAddr)
 	if err != nil {
-		log.Fatalf("failed to init link client: %v", err)
+		log.Fatalf("link client: %v", err)
 	}
-	statService, err := service.NewStatService(cfg.StatGRPCAddr)
+	statSvc, err := service.NewStatService(cfg.StatGRPCAddr)
 	if err != nil {
-		log.Fatalf("failed to init stat client: %v", err)
+		log.Fatalf("stat client: %v", err)
 	}
 
-	// Router
 	router := gateway.NewRouter(gateway.Deps{
 		Verifier:   verifier,
-		AuthClient: authService.Client(),
-		LinkClient: linkService.Client(),
-		StatClient: statService.Client(),
+		AuthClient: authSvc.Client(),
+		LinkClient: linkSvc.Client(),
+		StatClient: statSvc.Client(),
 	}, cfg)
 
-	log.Println("Gateway listening on port:", cfg.Port)
+	log.Printf("Gateway listening on :%s", cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, router); err != nil {
-		log.Fatal("server failed:", err)
+		log.Fatal(err)
 	}
 }

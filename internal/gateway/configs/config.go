@@ -15,6 +15,7 @@ type Config struct {
 	LinkGRPCAddr   string
 	PublicKey      string
 	AllowedOrigins []string
+	LogLevel       string
 }
 
 func LoadConfig() *Config {
@@ -31,7 +32,8 @@ func LoadConfig() *Config {
 		log.Fatalf("failed to read public key: %v", err)
 	}
 
-	origins := parseCSV(getEnv("GATEWAY_CORS_ORIGINS", "http://localhost:3000"))
+	origins := splitCSV(getEnv("GATEWAY_CORS_ORIGINS", "http://localhost:3000"))
+	level := getEnv("LOG_LEVEL", "info")
 
 	return &Config{
 		Port:           port,
@@ -40,18 +42,18 @@ func LoadConfig() *Config {
 		LinkGRPCAddr:   linkAddr,
 		PublicKey:      string(key),
 		AllowedOrigins: origins,
+		LogLevel:       level,
 	}
 }
 
-func getEnv(key, def string) string {
-	if v := os.Getenv(key); v != "" {
+func getEnv(k, def string) string {
+	if v := os.Getenv(k); v != "" {
 		return v
 	}
 	return def
 }
 
-func parseCSV(s string) []string {
-	s = strings.TrimSpace(s)
+func splitCSV(s string) []string {
 	if s == "" {
 		return nil
 	}

@@ -8,14 +8,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/sxd0/go_url-shortener/internal/auth"
 	"github.com/sxd0/go_url-shortener/internal/auth/configs"
+	"github.com/sxd0/go_url-shortener/internal/auth/db"
 	"github.com/sxd0/go_url-shortener/internal/auth/handler"
 	"github.com/sxd0/go_url-shortener/internal/auth/jwt"
+	"github.com/sxd0/go_url-shortener/internal/auth/logger"
 	"github.com/sxd0/go_url-shortener/internal/auth/repository"
 	"github.com/sxd0/go_url-shortener/internal/auth/server"
 	"github.com/sxd0/go_url-shortener/internal/auth/service"
-	"github.com/sxd0/go_url-shortener/pkg/logger"
 	"github.com/sxd0/go_url-shortener/proto/gen/go/authpb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -24,10 +24,10 @@ import (
 func main() {
 	cfg := configs.LoadConfig()
 
-	logger.InitLogger()
-	defer logger.SyncLogger()
+	logger.InitFromEnv()
+	defer logger.Sync()
 
-	dbConn := auth.NewDb(cfg)
+	dbConn := db.New(cfg.Db.GetDSN())
 	if dbConn == nil {
 		log.Fatal("nil *gorm.DB returned")
 	}

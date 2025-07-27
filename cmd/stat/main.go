@@ -6,16 +6,18 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
-	"github.com/sxd0/go_url-shortener/internal/stat"
 	"github.com/sxd0/go_url-shortener/internal/stat/configs"
+	"github.com/sxd0/go_url-shortener/internal/stat/db"
 	"github.com/sxd0/go_url-shortener/internal/stat/handler"
+	"github.com/sxd0/go_url-shortener/internal/stat/logger"
 	"github.com/sxd0/go_url-shortener/internal/stat/repository"
 	"github.com/sxd0/go_url-shortener/internal/stat/server"
 	"github.com/sxd0/go_url-shortener/internal/stat/service"
 	"github.com/sxd0/go_url-shortener/pkg/event"
 	"github.com/sxd0/go_url-shortener/proto/gen/go/statpb"
-	"go.uber.org/zap"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
@@ -23,10 +25,10 @@ func main() {
 	// Load config
 	cfg := configs.LoadConfig()
 
-	logger, _ := zap.NewProduction()
+	logger.InitFromEnv()
 	defer logger.Sync()
 
-	db := stat.NewDb(cfg)
+	db := db.New(cfg.Db.GetDSN())
 
 	bus := event.NewEventBus()
 
@@ -50,16 +52,33 @@ func main() {
 	reflection.Register(grpcServer)
 
 	go func() {
-		logger.Info("StatService listening on " + cfg.App.Port)
+		log.Printf("Stat gRPC server listening on :%s", cfg.App.Port)
 		if err := grpcServer.Serve(lis); err != nil {
-			logger.Fatal("failed to serve: " + err.Error())
+			log.Fatalf("failed to serve: %v", err)
 		}
 	}()
 
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
-	<-stop
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
-	logger.Info("StatService shutting down...")
-	grpcServer.GracefulStop()
+	<-quit
+	log.Println("Shutting down gRPC server...")
+
+	gracefulStop(grpcServer)
+}
+
+func gracefulStop(server *grpc.Server) {
+	done := make(chan struct{})
+	go func() {
+		server.GracefulStop()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		log.Println("gRPC server stopped gracefully")
+	case <-time.After(10 * time.Second):
+		log.Println("Timeout — forcing server shutdown")
+		server.Stop()
+	}
 }

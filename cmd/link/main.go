@@ -7,20 +7,27 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
-	"github.com/sxd0/go_url-shortener/internal/link"
 	"github.com/sxd0/go_url-shortener/internal/link/configs"
+	"github.com/sxd0/go_url-shortener/internal/link/db"
 	"github.com/sxd0/go_url-shortener/internal/link/handler"
+	"github.com/sxd0/go_url-shortener/internal/link/logger"
 	"github.com/sxd0/go_url-shortener/internal/link/repository"
 	"github.com/sxd0/go_url-shortener/internal/link/server"
 	"github.com/sxd0/go_url-shortener/internal/link/service"
 
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
 func main() {
 	config := configs.LoadConfig()
-	db := link.NewDb(config)
+
+	logger.InitFromEnv()
+	defer logger.Sync()
+
+	db := db.New(config.Db.GetDSN())
 
 	repo := repository.NewLinkRepository(db)
 	srv := service.NewLinkService(repo)
@@ -32,21 +39,39 @@ func main() {
 
 	reflection.Register(grpcServer)
 
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", config.App.Port))
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", config.App.Port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
 	go func() {
-		log.Printf("Link Service started on port %s", config.App.Port)
-		if err := grpcServer.Serve(listener); err != nil {
+		log.Printf("Link gRPC server listening on :%s", config.App.Port)
+		if err := grpcServer.Serve(lis); err != nil {
 			log.Fatalf("failed to serve: %v", err)
 		}
 	}()
 
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
-	<-stop
-	log.Println("Shutting down gracefully...")
-	grpcServer.GracefulStop()
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	<-quit
+	log.Println("Shutting down gRPC server...")
+
+	gracefulStop(grpcServer)
+}
+
+func gracefulStop(server *grpc.Server) {
+	done := make(chan struct{})
+	go func() {
+		server.GracefulStop()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		log.Println("gRPC server stopped gracefully")
+	case <-time.After(10 * time.Second):
+		log.Println("Timeout — forcing server shutdown")
+		server.Stop()
+	}
 }
