@@ -3,11 +3,17 @@ package main
 import (
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	healthgrpc "google.golang.org/grpc/health"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
+
+	"github.com/go-chi/chi"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sxd0/go_url-shortener/internal/auth/configs"
 	"github.com/sxd0/go_url-shortener/internal/auth/db"
 	"github.com/sxd0/go_url-shortener/internal/auth/handler"
@@ -57,11 +63,26 @@ func main() {
 	authpb.RegisterAuthServiceServer(grpcServer, authHandler)
 	reflection.Register(grpcServer)
 
+	healthServer := healthgrpc.NewServer()
+	healthpb.RegisterHealthServer(grpcServer, healthServer)
+	healthServer.SetServingStatus("", healthpb.HealthCheckResponse_SERVING)
+
 	go func() {
 		log.Printf("Auth gRPC server listening on :%s", cfg.App.Port)
 		if err := grpcServer.Serve(lis); err != nil {
 			log.Fatalf("failed to serve: %v", err)
 		}
+	}()
+
+	go func() {
+		r := chi.NewRouter()
+		r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("ok"))
+		})
+		r.Handle("/metrics", promhttp.Handler())
+		log.Println("Auth HTTP health on :9101")
+		http.ListenAndServe(":9101", r)
 	}()
 
 	quit := make(chan os.Signal, 1)

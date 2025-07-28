@@ -44,6 +44,7 @@ services:
         condition: service_healthy
     ports:
       - "50051:50051"
+      - "9101:9101"
     volumes:
       - ./jwt_private.pem:/app/jwt_private.pem
       - ./jwt_public.pem:/app/jwt_public.pem
@@ -93,6 +94,7 @@ services:
         condition: service_healthy
     ports:
       - "50052:50052"
+      - "9102:9102"
 
   stat_postgres:
     image: postgres:16
@@ -139,6 +141,7 @@ services:
         condition: service_healthy
     ports:
       - "50053:50053"
+      - "9103:9103"
 
   gateway_service:
     build:

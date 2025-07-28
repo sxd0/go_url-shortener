@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/go-chi/chi"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sxd0/go_url-shortener/internal/link/configs"
 	"github.com/sxd0/go_url-shortener/internal/link/db"
 	"github.com/sxd0/go_url-shortener/internal/link/handler"
@@ -16,6 +19,8 @@ import (
 	"github.com/sxd0/go_url-shortener/internal/link/repository"
 	"github.com/sxd0/go_url-shortener/internal/link/server"
 	"github.com/sxd0/go_url-shortener/internal/link/service"
+	healthgrpc "google.golang.org/grpc/health"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -39,6 +44,10 @@ func main() {
 
 	reflection.Register(grpcServer)
 
+	healthServer := healthgrpc.NewServer()
+	healthpb.RegisterHealthServer(grpcServer, healthServer)
+	healthServer.SetServingStatus("", healthpb.HealthCheckResponse_SERVING)
+
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", config.App.Port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
@@ -49,6 +58,17 @@ func main() {
 		if err := grpcServer.Serve(lis); err != nil {
 			log.Fatalf("failed to serve: %v", err)
 		}
+	}()
+
+	go func() {
+		r := chi.NewRouter()
+		r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("ok"))
+		})
+		r.Handle("/metrics", promhttp.Handler())
+		log.Println("Link HTTP health on :9101")
+		http.ListenAndServe(":9102", r)
 	}()
 
 	quit := make(chan os.Signal, 1)
