@@ -7,6 +7,7 @@ import (
   "github.com/go-chi/chi/v5"
 )
 
+//go:embed openapi.yaml openapi.html
 var contentFS embed.FS
 
 func Mount(r chi.Router) {

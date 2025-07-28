@@ -38,3 +38,6 @@ docker-compose.override.yml
 
 # Key
 *.pem
+
+# Optionality
+load-test.sh

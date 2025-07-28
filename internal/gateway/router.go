@@ -23,7 +23,7 @@ func NewRouter(deps Deps, cfg *configs.Config) http.Handler {
 	// AUTH
 	r.Route("/auth", func(r chi.Router) {
 		h := handler.NewAuthHandler(deps.AuthClient)
-
+		r.Use(middleware.RateLimitMiddleware)
 		r.Post("/register", h.Register())
 		r.Post("/login", h.Login())
 		r.Post("/refresh", h.Refresh())
@@ -48,7 +48,8 @@ func NewRouter(deps Deps, cfg *configs.Config) http.Handler {
 	})
 
 	// Redirect
-	r.Get("/r/{hash}", handler.RedirectHandler(handler.Deps{
+	r.With(middleware.RateLimitMiddleware).
+		Get("/r/{hash}", handler.RedirectHandler(handler.Deps{
 		LinkClient: deps.LinkClient,
 		StatClient: deps.StatClient,
 		Verifier:   deps.Verifier,
