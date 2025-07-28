@@ -159,8 +159,25 @@ services:
     volumes:
       - ./jwt_public.pem:/app/jwt_public.pem
 
+  prometheus:
+    image: prom/prometheus:v2.49.0
+    container_name: prometheus
+    volumes:
+      - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - gateway_service
+      - auth_service
+      - link_service
+      - stat_service
+
 
 volumes:
   auth_postgres_data:
   link_postgres_data:
   stat_postgres_data:
+
+networks:
+  default:
+    driver: bridge

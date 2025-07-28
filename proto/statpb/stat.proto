@@ -18,6 +18,7 @@ message GetStatsRequest {
 message Stat {
   string period = 1;
   int32 sum = 2;
+  uint32 link_id = 3;
 }
 
 message GetStatsResponseList {

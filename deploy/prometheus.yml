@@ -1,0 +1,23 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'gateway'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['gateway_service:8080']
+
+  - job_name: 'auth'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['auth_service:9101']
+
+  - job_name: 'link'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['link_service:9102']
+
+  - job_name: 'stat'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['stat_service:9103']

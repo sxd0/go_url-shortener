@@ -1,6 +1,7 @@
 package payload
 
 type GetStatResponse struct {
-	Period string `json:"period"`
-	Sum    int    `json:"sum"`
+	Date   string `json:"date"`
+	LinkId uint   `json:"link_id"`
+	Clicks int    `json:"clicks"`
 }

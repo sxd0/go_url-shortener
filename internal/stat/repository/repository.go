@@ -67,20 +67,24 @@ func (r *StatRepository) AddClick(linkID uint32, userID uint64) error {
 	}).Create(&stat).Error
 }
 
-func (repo *StatRepository) GetStats(userID uint, by string, from, to time.Time) []payload.GetStatResponse {
+func (r *StatRepository) GetStats(userID uint, by string, from, to time.Time) []payload.GetStatResponse {
 	var stats []payload.GetStatResponse
 	var selectQuery string
 	switch by {
 	case GroupByDay:
-		selectQuery = "to_char(date, 'YYYY-MM-DD') as period, sum(clicks)"
+		selectQuery = `link_id, to_char(date, 'YYYY-MM-DD') AS date, sum(clicks) AS clicks`
 	case GroupByMonth:
-		selectQuery = "to_char(date, 'YYYY-MM') as period, sum(clicks)"
+		selectQuery = `link_id, to_char(date, 'YYYY-MM') AS date, sum(clicks) AS clicks`
+	default:
+		selectQuery = `link_id, to_char(date, 'YYYY-MM-DD') AS date, sum(clicks) AS clicks`
 	}
-	repo.Db.Table("stats").
+
+	r.Db.Table("stats").
 		Select(selectQuery).
-		Where("user_id = ? AND date BETWEEN ? and ?", userID, from, to).
-		Group("period").
-		Order("period").
+		Where("user_id = ? AND date BETWEEN ? AND ?", userID, from, to).
+		Group("link_id, date").
+		Order("link_id, date").
 		Scan(&stats)
+
 	return stats
 }

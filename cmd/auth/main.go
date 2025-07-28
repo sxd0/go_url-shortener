@@ -9,10 +9,8 @@ import (
 	"syscall"
 	"time"
 
-	healthgrpc "google.golang.org/grpc/health"
-	healthpb "google.golang.org/grpc/health/grpc_health_v1"
-
 	"github.com/go-chi/chi"
+	grpc_prom "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sxd0/go_url-shortener/internal/auth/configs"
 	"github.com/sxd0/go_url-shortener/internal/auth/db"
@@ -24,6 +22,8 @@ import (
 	"github.com/sxd0/go_url-shortener/internal/auth/service"
 	"github.com/sxd0/go_url-shortener/proto/gen/go/authpb"
 	"google.golang.org/grpc"
+	healthgrpc "google.golang.org/grpc/health"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 )
 
@@ -62,6 +62,8 @@ func main() {
 	grpcServer := server.NewGRPCServerWithMiddleware(tokenGenerator)
 	authpb.RegisterAuthServiceServer(grpcServer, authHandler)
 	reflection.Register(grpcServer)
+
+	grpc_prom.Register(grpcServer)
 
 	healthServer := healthgrpc.NewServer()
 	healthpb.RegisterHealthServer(grpcServer, healthServer)

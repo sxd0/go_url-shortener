@@ -8,6 +8,8 @@ import (
 	"github.com/sxd0/go_url-shortener/internal/gateway/handler"
 	"github.com/sxd0/go_url-shortener/internal/gateway/middleware"
 	"github.com/sxd0/go_url-shortener/internal/gateway/openapi"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func NewRouter(deps Deps, cfg *configs.Config) http.Handler {
@@ -17,7 +19,11 @@ func NewRouter(deps Deps, cfg *configs.Config) http.Handler {
 	r.Use(middleware.LoggingMiddleware)
 	r.Use(middleware.CORSMiddlewareWithCfg(cfg))
 
-	// Docs
+	// PROMETHEUS
+	r.Use(middleware.PrometheusMiddleware)
+	r.Handle("/metrics", promhttp.Handler())
+
+	// DOCS
 	openapi.Mount(r)
 
 	// AUTH
@@ -50,10 +56,10 @@ func NewRouter(deps Deps, cfg *configs.Config) http.Handler {
 	// Redirect
 	r.With(middleware.RateLimitMiddleware).
 		Get("/r/{hash}", handler.RedirectHandler(handler.Deps{
-		LinkClient: deps.LinkClient,
-		StatClient: deps.StatClient,
-		Verifier:   deps.Verifier,
-	}))
+			LinkClient: deps.LinkClient,
+			StatClient: deps.StatClient,
+			Verifier:   deps.Verifier,
+		}))
 
 	// STATS
 	r.Route("/stat", func(r chi.Router) {

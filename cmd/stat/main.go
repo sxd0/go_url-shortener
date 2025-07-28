@@ -10,9 +10,11 @@ import (
 	"time"
 
 	"github.com/go-chi/chi"
+	grpc_prom "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sxd0/go_url-shortener/internal/stat/configs"
 	"github.com/sxd0/go_url-shortener/internal/stat/db"
+	"github.com/sxd0/go_url-shortener/internal/stat/event"
 	"github.com/sxd0/go_url-shortener/internal/stat/handler"
 	"github.com/sxd0/go_url-shortener/internal/stat/logger"
 	"github.com/sxd0/go_url-shortener/internal/stat/repository"
@@ -20,8 +22,6 @@ import (
 	"github.com/sxd0/go_url-shortener/internal/stat/service"
 	healthgrpc "google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
-
-	"github.com/sxd0/go_url-shortener/internal/stat/event"
 
 	"github.com/sxd0/go_url-shortener/proto/gen/go/statpb"
 	"google.golang.org/grpc"
@@ -56,6 +56,8 @@ func main() {
 	statpb.RegisterStatServiceServer(grpcServer, handler.NewStatGRPCHandler(statRepo))
 
 	reflection.Register(grpcServer)
+
+	grpc_prom.Register(grpcServer)
 
 	healthServer := healthgrpc.NewServer()
 	healthpb.RegisterHealthServer(grpcServer, healthServer)

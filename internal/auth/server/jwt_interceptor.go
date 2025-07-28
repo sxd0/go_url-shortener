@@ -15,17 +15,14 @@ type ContextJWTKey struct{}
 
 func NewJWTUnaryInterceptor(jwtService *jwt.JWT) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		// 0) защитимся от ошибочной DI
 		if jwtService == nil {
 			return nil, status.Error(codes.Internal, "jwt service not initialized")
 		}
 
-		// 1) публичные методы — сразу пропускаем, НИЧЕГО не читаем из metadata
 		if isPublicMethod(info.FullMethod) {
 			return handler(ctx, req)
 		}
 
-		// 2) безопасно читаем метаданные
 		md, ok := metadata.FromIncomingContext(ctx)
 		if !ok {
 			return nil, status.Error(codes.Unauthenticated, "metadata is not provided")
@@ -40,20 +37,17 @@ func NewJWTUnaryInterceptor(jwtService *jwt.JWT) grpc.UnaryServerInterceptor {
 			return nil, status.Error(codes.Unauthenticated, "invalid authorization token format")
 		}
 
-		// 3) валидируем access‑токен (RS256)
 		valid, data := jwtService.ParseAccessToken(token)
 		if !valid {
 			return nil, status.Error(codes.Unauthenticated, "invalid or expired access token")
 		}
 
-		// 4) складываем данные в контекст
 		ctx = context.WithValue(ctx, ContextJWTKey{}, data)
 		return handler(ctx, req)
 	}
 }
 
 func isPublicMethod(full string) bool {
-	// допускаем разные имена пакетов/сервисов; ориентируемся на суффикс
 	switch {
 	case strings.HasSuffix(full, "/Register"),
 		strings.HasSuffix(full, "/Login"),
