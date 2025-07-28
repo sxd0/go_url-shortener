@@ -287,7 +287,7 @@ paths:
       description: |
         Отправляет HTTP 302 на оригинальный URL.  
         **В Swagger UI** может не работать из‑за автоматического follow-redirect и CORS —  
-        тестируйте через браузерную адресную строку или `curl -v` .
+        тестируйте через браузерную адресную строку .
       parameters:
         - name: hash
           in: path
@@ -320,7 +320,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [day, week, month]
+            enum: [day, month]
             example: "day"
       responses:
         "200":

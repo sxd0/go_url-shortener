@@ -41,3 +41,4 @@ docker-compose.override.yml
 
 # Optionality
 load-test.sh
+script.sh
