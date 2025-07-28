@@ -1,35 +1,32 @@
 package openapi
 
 import (
-	"embed"
-	"net/http"
+  "embed"
+  "net/http"
+
+  "github.com/go-chi/chi/v5"
 )
 
-var fs embed.FS
+var contentFS embed.FS
 
-func OpenAPIServeYAML(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/yaml")
-	data, _ := fs.ReadFile("openapi.yaml")
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(data)
-}
+func Mount(r chi.Router) {
+  r.Get("/openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+    data, err := contentFS.ReadFile("openapi.yaml")
+    if err != nil {
+      http.Error(w, "spec not found", http.StatusInternalServerError)
+      return
+    }
+    w.Write(data)
+  })
 
-func RedocHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(`<!doctype html>
-<html>
-  <head>
-    <title>API Docs</title>
-    <meta charset="utf-8"/>
-    <script src="https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js"></script>
-    <style>html,body,#redoc{height:100%;margin:0;padding:0}</style>
-  </head>
-  <body>
-    <div id="redoc"></div>
-    <script>
-      Redoc.init('/openapi.yaml', {}, document.getElementById('redoc'))
-    </script>
-  </body>
-</html>`))
+  r.Get("/docs", func(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "text/html; charset=utf-8")
+    data, err := contentFS.ReadFile("openapi.html")
+    if err != nil {
+      http.Error(w, "docs not found", http.StatusInternalServerError)
+      return
+    }
+    w.Write(data)
+  })
 }

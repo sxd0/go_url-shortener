@@ -18,8 +18,7 @@ func NewRouter(deps Deps, cfg *configs.Config) http.Handler {
 	r.Use(middleware.CORSMiddlewareWithCfg(cfg))
 
 	// Docs
-	r.Get("/openapi.yaml", openapi.OpenAPIServeYAML)
-	r.Get("/docs", openapi.RedocHandler)
+	openapi.Mount(r)
 
 	// AUTH
 	r.Route("/auth", func(r chi.Router) {
