@@ -1,6 +1,6 @@
 services:
   auth_postgres:
-    image: postgres:16
+    image: postgres:17
     restart: always
     container_name: auth_postgres
     env_file:
@@ -50,7 +50,7 @@ services:
       - ./jwt_public.pem:/app/jwt_public.pem
 
   link_postgres:
-    image: postgres:16
+    image: postgres:17
     restart: always
     container_name: link_postgres
     env_file:
@@ -97,7 +97,7 @@ services:
       - "9102:9102"
 
   stat_postgres:
-    image: postgres:16
+    image: postgres:17
     restart: always
     container_name: stat_postgres
     env_file:
