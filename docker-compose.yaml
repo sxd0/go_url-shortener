@@ -154,10 +154,16 @@ services:
       - auth_service
       - link_service
       - stat_service
+      - redis_service
     ports:
       - "8080:8080"
     volumes:
       - ./jwt_public.pem:/app/jwt_public.pem
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    container_name: redis_service
 
   prometheus:
     image: prom/prometheus:v2.49.0
