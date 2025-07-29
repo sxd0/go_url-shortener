@@ -8,6 +8,7 @@ import (
 	"github.com/sxd0/go_url-shortener/internal/gateway/configs"
 	"github.com/sxd0/go_url-shortener/internal/gateway/jwt"
 	"github.com/sxd0/go_url-shortener/internal/gateway/logger"
+	"github.com/sxd0/go_url-shortener/internal/gateway/redis"
 	"github.com/sxd0/go_url-shortener/internal/gateway/service"
 )
 
@@ -32,11 +33,14 @@ func main() {
 		log.Fatalf("stat client: %v", err)
 	}
 
-	router := gateway.NewRouter(gateway.Deps{
+	rdb := redis.New(cfg.RedisAddr)
+
+	router := gateway.NewRouter(gateway.RedirectDeps{
 		Verifier:   verifier,
 		AuthClient: authSvc.Client(),
 		LinkClient: linkSvc.Client(),
 		StatClient: statSvc.Client(),
+		Cache:      rdb,
 	}, cfg)
 
 	log.Printf("Gateway listening on :%s", cfg.Port)

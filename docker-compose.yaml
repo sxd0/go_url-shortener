@@ -154,7 +154,7 @@ services:
       - auth_service
       - link_service
       - stat_service
-      - redis_service
+      - redis
     ports:
       - "8080:8080"
     volumes:

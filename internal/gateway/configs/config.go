@@ -3,6 +3,7 @@ package configs
 import (
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/joho/godotenv"
@@ -16,6 +17,10 @@ type Config struct {
 	PublicKey      string
 	AllowedOrigins []string
 	LogLevel       string
+	RedisAddr      string
+	LinkCacheTTL   int
+	RLTTL          int
+	RLLimit        int
 }
 
 func LoadConfig() *Config {
@@ -43,6 +48,11 @@ func LoadConfig() *Config {
 		PublicKey:      string(key),
 		AllowedOrigins: origins,
 		LogLevel:       level,
+
+		RedisAddr:    getEnv("REDIS_ADDR", "redis:6379"),
+		LinkCacheTTL: mustInt(getEnv("LINK_CACHE_TTL", "1800")),
+		RLTTL:        mustInt(getEnv("RL_TTL", "60")),
+		RLLimit:      mustInt(getEnv("RL_LIMIT", "50")),
 	}
 }
 
@@ -66,4 +76,9 @@ func splitCSV(s string) []string {
 		}
 	}
 	return out
+}
+
+func mustInt(s string) int {
+	i, _ := strconv.Atoi(s)
+	return i
 }

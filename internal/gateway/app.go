@@ -7,7 +7,7 @@ import (
 	"github.com/sxd0/go_url-shortener/internal/gateway/configs"
 )
 
-func App(deps Deps, cfg *configs.Config) *http.Server {
+func App(deps RedirectDeps, cfg *configs.Config) *http.Server {
 	return &http.Server{
 		Addr:              ":" + cfg.Port,
 		Handler:           NewRouter(deps, cfg),

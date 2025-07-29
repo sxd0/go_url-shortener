@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/sxd0/go_url-shortener/internal/gateway/configs"
@@ -12,24 +13,27 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func NewRouter(deps Deps, cfg *configs.Config) http.Handler {
+func NewRouter(deps RedirectDeps, cfg *configs.Config) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestIDMiddleware)
 	r.Use(middleware.LoggingMiddleware)
 	r.Use(middleware.CORSMiddlewareWithCfg(cfg))
-
-	// PROMETHEUS
 	r.Use(middleware.PrometheusMiddleware)
-	r.Handle("/metrics", promhttp.Handler())
 
-	// DOCS
+	rl := &middleware.RLConfig{
+		Limit: cfg.RLLimit,
+		TTL:   time.Duration(cfg.RLTTL) * time.Second,
+		Redis: deps.Cache.Client,
+	}
+	r.Use(rl.Handler)
+
 	openapi.Mount(r)
+	r.Handle("/metrics", promhttp.Handler())
 
 	// AUTH
 	r.Route("/auth", func(r chi.Router) {
 		h := handler.NewAuthHandler(deps.AuthClient)
-		r.Use(middleware.RateLimitMiddleware)
 		r.Post("/register", h.Register())
 		r.Post("/login", h.Login())
 		r.Post("/refresh", h.Refresh())
@@ -54,12 +58,12 @@ func NewRouter(deps Deps, cfg *configs.Config) http.Handler {
 	})
 
 	// Redirect
-	r.With(middleware.RateLimitMiddleware).
-		Get("/r/{hash}", handler.RedirectHandler(handler.Deps{
-			LinkClient: deps.LinkClient,
-			StatClient: deps.StatClient,
-			Verifier:   deps.Verifier,
-		}))
+	r.Get("/r/{hash}", handler.RedirectHandler(handler.RedirectDeps{
+		LinkClient: deps.LinkClient,
+		StatClient: deps.StatClient,
+		Cache:      deps.Cache,
+		CacheTTL:   time.Duration(cfg.LinkCacheTTL) * time.Second,
+	}))
 
 	// STATS
 	r.Route("/stat", func(r chi.Router) {

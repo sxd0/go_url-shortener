@@ -3,65 +3,43 @@ package middleware
 import (
 	"net"
 	"net/http"
-	"sync"
 	"time"
 
-	"golang.org/x/time/rate"
+	"github.com/go-chi/chi/v5"
+	"github.com/redis/go-redis/v9"
 )
 
-type limiterEntry struct {
-	limiter *rate.Limiter
-	last    time.Time
+type RLConfig struct {
+	Limit int
+	TTL   time.Duration
+	Redis *redis.Client
 }
 
-var (
-	rps        = 3
-	burst      = 6
-	limiters   = make(map[string]*limiterEntry)
-	limitersMu sync.Mutex
-)
+const lua = `
+local current = redis.call("INCR", KEYS[1])
+if current == 1 then
+	redis.call("EXPIRE", KEYS[1], ARGV[1])
+end
+return current
+`
 
-func getLimiter(ip string) *rate.Limiter {
-	now := time.Now()
-	limitersMu.Lock()
-	defer limitersMu.Unlock()
-
-	if e, ok := limiters[ip]; ok {
-		e.last = now
-		return e.limiter
-	}
-	lim := rate.NewLimiter(rate.Limit(rps), burst)
-	limiters[ip] = &limiterEntry{limiter: lim, last: now}
-	return lim
-}
-
-func cleanupOldLimiters(d time.Duration) {
-	ticker := time.NewTicker(d)
-	defer ticker.Stop()
-	for range ticker.C {
-		limitersMu.Lock()
-		now := time.Now()
-		for ip, e := range limiters {
-			if now.Sub(e.last) > d {
-				delete(limiters, ip)
-			}
-		}
-		limitersMu.Unlock()
-	}
-}
-
-func init() {
-	go cleanupOldLimiters(5 * time.Minute)
-}
-
-func RateLimitMiddleware(next http.Handler) http.Handler {
+func (c *RLConfig) Handler(next http.Handler) http.Handler {
+	script := redis.NewScript(lua)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip, _, _ := net.SplitHostPort(r.RemoteAddr)
-		if ip == "" {
-			ip = r.RemoteAddr
+		route := chi.RouteContext(r.Context()).RoutePattern()
+		if route == "/metrics" {
+			next.ServeHTTP(w, r)
+			return
 		}
-		lim := getLimiter(ip)
-		if !lim.Allow() {
+		if route == "" {
+			route = "unknown"
+		}
+
+		ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+		key := "rl:" + route + ":ip:" + ip
+
+		curr, _ := script.Run(r.Context(), c.Redis, []string{key}, int(c.TTL.Seconds())).Int()
+		if curr > c.Limit {
 			http.Error(w, "too many requests", http.StatusTooManyRequests)
 			return
 		}
