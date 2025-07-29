@@ -23,7 +23,7 @@ var (
 
 func init() { prometheus.MustRegister(httpRequestsTotal, httpRequestDuration) }
 
-func Prometheus(next http.Handler) http.Handler {
+func PrometheusMiddleware(next http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         start := time.Now()
         rw := chimw.NewWrapResponseWriter(w, r.ProtoMajor)
