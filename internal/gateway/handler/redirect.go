@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"net/url"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/sxd0/go_url-shortener/internal/gateway/middleware"
@@ -30,12 +31,19 @@ func RedirectHandler(deps Deps) http.HandlerFunc {
 			return
 		}
 
+		dest := linkResp.GetLink().GetUrl()
+		u, err := url.ParseRequestURI(dest)
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
+			http.Error(w, "invalid url", http.StatusBadRequest)
+			return
+		}
+
 		ownerID := linkResp.GetLink().GetUserId()
 		_, _ = deps.StatClient.AddClick(grpcCtx, &statpb.AddClickRequest{
 			LinkId: linkResp.GetLink().GetId(),
 			UserId: uint64(ownerID),
 		})
 
-		http.Redirect(w, r, linkResp.GetLink().GetUrl(), http.StatusFound)
+		http.Redirect(w, r, u.String(), http.StatusTemporaryRedirect)
 	}
 }

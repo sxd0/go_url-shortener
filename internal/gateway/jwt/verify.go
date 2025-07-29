@@ -1,6 +1,7 @@
 package jwt
 
 import (
+	"crypto/rsa"
 	"errors"
 	"time"
 
@@ -10,46 +11,52 @@ import (
 var (
 	ErrInvalidToken = errors.New("invalid token")
 	ErrWrongType    = errors.New("token is not access token")
+	ErrExpired      = errors.New("token expired")
+	ErrWrongMethod  = errors.New("invalid signing method")
 )
 
-type Verifier struct {
-	publicKey []byte
+type AccessClaims struct {
+	UserID    uint   `json:"user_id"`
+	Email     string `json:"email"`
+	TokenType string `json:"token_type"`
+	jwt.RegisteredClaims
 }
 
-func NewVerifier(publicKey string) *Verifier {
-	return &Verifier{
-		publicKey: []byte(publicKey),
+type Verifier struct {
+	publicKey *rsa.PublicKey
+}
+
+func NewVerifier(pem string) *Verifier {
+	pk, err := jwt.ParseRSAPublicKeyFromPEM([]byte(pem))
+	if err != nil {
+		panic("jwt: bad RSA public key: " + err.Error())
 	}
+	return &Verifier{publicKey: pk}
 }
 
 func (v *Verifier) ParseToken(tokenStr string) (uint, error) {
-	keyFunc := func(token *jwt.Token) (interface{}, error) {
-		return jwt.ParseRSAPublicKeyFromPEM(v.publicKey)
-	}
-
-	token, err := jwt.Parse(tokenStr, keyFunc, jwt.WithValidMethods([]string{"RS256"}))
-	if err != nil || !token.Valid {
-		return 0, ErrInvalidToken
-	}
-
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return 0, ErrInvalidToken
-	}
-
-	if expRaw, ok := claims["exp"].(float64); ok {
-		if int64(expRaw) < time.Now().Unix() {
-			return 0, ErrInvalidToken
+	keyFunc := func(t *jwt.Token) (any, error) {
+		if t.Method.Alg() != jwt.SigningMethodRS256.Alg() {
+			return nil, ErrWrongMethod
 		}
+		return v.publicKey, nil
 	}
 
-	if typ, ok := claims["token_type"].(string); !ok || typ != "access" {
+	var claims AccessClaims
+	tok, err := jwt.ParseWithClaims(
+		tokenStr,
+		&claims,
+		keyFunc,
+		jwt.WithValidMethods([]string{jwt.SigningMethodRS256.Alg()}),
+	)
+	if err != nil || !tok.Valid {
+		return 0, ErrInvalidToken
+	}
+	if claims.TokenType != "access" {
 		return 0, ErrWrongType
 	}
-
-	idFloat, ok := claims["user_id"].(float64)
-	if !ok {
-		return 0, ErrInvalidToken
+	if claims.ExpiresAt == nil || time.Now().After(claims.ExpiresAt.Time) {
+		return 0, ErrExpired
 	}
-	return uint(idFloat), nil
+	return uint(claims.UserID), nil
 }
