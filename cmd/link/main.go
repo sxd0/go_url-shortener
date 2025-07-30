@@ -20,6 +20,7 @@ import (
 	"github.com/sxd0/go_url-shortener/internal/link/repository"
 	"github.com/sxd0/go_url-shortener/internal/link/server"
 	"github.com/sxd0/go_url-shortener/internal/link/service"
+	"github.com/sxd0/go_url-shortener/pkg/kafka"
 	"google.golang.org/grpc"
 	healthgrpc "google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
@@ -32,10 +33,17 @@ func main() {
 	logger.InitFromEnv()
 	defer logger.Sync()
 
+	kafkaAddr := os.Getenv("KAFKA_ADDR")
+	if kafkaAddr == "" {
+		kafkaAddr = "kafka:9092"
+	}
+	producer := kafka.NewPublisher([]string{kafkaAddr}, "link.events")
+	defer producer.Close()
+
 	db := db.New(config.Db.GetDSN())
 
 	repo := repository.NewLinkRepository(db)
-	srv := service.NewLinkService(repo)
+	srv := service.NewLinkService(repo, producer)
 
 	h := handler.NewLinkHandler(srv)
 

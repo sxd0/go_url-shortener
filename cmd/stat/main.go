@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net"
 	"net/http"
@@ -14,12 +15,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sxd0/go_url-shortener/internal/stat/configs"
 	"github.com/sxd0/go_url-shortener/internal/stat/db"
-	"github.com/sxd0/go_url-shortener/internal/stat/event"
 	"github.com/sxd0/go_url-shortener/internal/stat/handler"
 	"github.com/sxd0/go_url-shortener/internal/stat/logger"
 	"github.com/sxd0/go_url-shortener/internal/stat/repository"
 	"github.com/sxd0/go_url-shortener/internal/stat/server"
 	"github.com/sxd0/go_url-shortener/internal/stat/service"
+	"github.com/sxd0/go_url-shortener/pkg/kafka"
 	healthgrpc "google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 
@@ -36,15 +37,23 @@ func main() {
 
 	db := db.New(cfg.Db.GetDSN())
 
-	bus := event.NewEventBus()
+	kafkaAddr := os.Getenv("KAFKA_ADDR")
+	if kafkaAddr == "" {
+		kafkaAddr = "kafka:9092"
+	}
+	subscriber := kafka.NewSubscriber([]string{kafkaAddr}, "link.events", "stat-service")
+	defer subscriber.Close()
 
 	statRepo := repository.NewStatRepository(db)
-	statService := service.NewStatService(&service.StatServiceDeps{
-		EventBus:       bus,
-		StatRepository: statRepo,
-	})
+	statService := service.NewStatService(statRepo, subscriber)
 
-	go statService.AddClick()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func() {
+		if err := statService.Start(ctx); err != nil {
+			log.Fatalf("stat consumer: %v", err)
+		}
+	}()
 
 	lis, err := net.Listen("tcp", ":"+cfg.App.Port)
 	if err != nil {

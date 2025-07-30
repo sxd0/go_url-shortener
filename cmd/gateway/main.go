@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/sxd0/go_url-shortener/internal/gateway"
 	"github.com/sxd0/go_url-shortener/internal/gateway/configs"
@@ -10,6 +11,7 @@ import (
 	"github.com/sxd0/go_url-shortener/internal/gateway/logger"
 	"github.com/sxd0/go_url-shortener/internal/gateway/redis"
 	"github.com/sxd0/go_url-shortener/internal/gateway/service"
+	"github.com/sxd0/go_url-shortener/pkg/kafka"
 )
 
 func main() {
@@ -32,6 +34,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("stat client: %v", err)
 	}
+
+	kafkaAddr := os.Getenv("KAFKA_ADDR")
+	if kafkaAddr == "" {
+		kafkaAddr = "kafka:9092"
+	}
+	producer := kafka.NewPublisher([]string{kafkaAddr}, "link.events")
+	defer producer.Close()
 
 	rdb := redis.New(cfg.RedisAddr)
 

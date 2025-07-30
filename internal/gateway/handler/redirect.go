@@ -9,18 +9,20 @@ import (
 	"github.com/sxd0/go_url-shortener/internal/gateway/jwt"
 	"github.com/sxd0/go_url-shortener/internal/gateway/middleware"
 	"github.com/sxd0/go_url-shortener/internal/gateway/redis"
+	"github.com/sxd0/go_url-shortener/pkg/kafka"
 	"github.com/sxd0/go_url-shortener/proto/gen/go/authpb"
 	"github.com/sxd0/go_url-shortener/proto/gen/go/linkpb"
 	"github.com/sxd0/go_url-shortener/proto/gen/go/statpb"
 )
 
 type RedirectDeps struct {
-	AuthClient authpb.AuthServiceClient
-	LinkClient linkpb.LinkServiceClient
-	StatClient statpb.StatServiceClient
-	Verifier   *jwt.Verifier
-	Cache      *redis.Client
-	CacheTTL   time.Duration
+	AuthClient     authpb.AuthServiceClient
+	LinkClient     linkpb.LinkServiceClient
+	StatClient     statpb.StatServiceClient
+	Verifier       *jwt.Verifier
+	Cache          *redis.Client
+	CacheTTL       time.Duration
+	KafkaPublisher *kafka.Publisher
 }
 
 func RedirectHandler(deps RedirectDeps) http.HandlerFunc {
@@ -51,11 +53,16 @@ func RedirectHandler(deps RedirectDeps) http.HandlerFunc {
 			return
 		}
 
-		ownerID := linkResp.GetLink().GetUserId()
-		_, _ = deps.StatClient.AddClick(grpcCtx, &statpb.AddClickRequest{
-			LinkId: linkResp.GetLink().GetId(),
-			UserId: uint64(ownerID),
-		})
+		if deps.KafkaPublisher != nil {
+			_ = deps.KafkaPublisher.Publish(r.Context(), kafka.Event{
+				Kind:   kafka.LinkVisitedKind,
+				LinkID: uint(linkResp.GetLink().GetId()),
+				UserID: uint(linkResp.GetLink().GetUserId()),
+				Ts:     time.Now().UTC(),
+			})
+		} else {
+			http.Error(w, "Kafka publisher is nil – click event not sent", http.StatusBadRequest)
+		}
 
 		deps.Cache.SetString("link:"+hash, dest, deps.CacheTTL)
 		http.Redirect(w, r, u.String(), http.StatusTemporaryRedirect)

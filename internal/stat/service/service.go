@@ -1,41 +1,37 @@
 package service
 
 import (
+	"context"
 	"log"
 
-	eventPayload "github.com/sxd0/go_url-shortener/internal/stat/event"
 	"github.com/sxd0/go_url-shortener/internal/stat/repository"
+	"github.com/sxd0/go_url-shortener/pkg/kafka"
 )
 
-type StatServiceDeps struct {
-	EventBus       *eventPayload.EventBus
-	StatRepository *repository.StatRepository
-}
-
 type StatService struct {
-	EventBus       *eventPayload.EventBus
-	StatRepository *repository.StatRepository
+	repo *repository.StatRepository
+	sub  *kafka.Subscriber
 }
 
-func NewStatService(deps *StatServiceDeps) *StatService {
-	return &StatService{
-		EventBus:       deps.EventBus,
-		StatRepository: deps.StatRepository,
-	}
+func NewStatService(repo *repository.StatRepository, sub *kafka.Subscriber) *StatService {
+	return &StatService{repo: repo, sub: sub}
 }
 
-func (s *StatService) AddClick() {
-	for msg := range s.EventBus.Subscribe() {
-		if msg.Type != eventPayload.EventLinkVisited {
-			continue
-		}
+func (s *StatService) Start(ctx context.Context) error {
+	events := make(chan kafka.Event, 128)
+	go s.sub.Consume(ctx, events)
 
-		payload, ok := msg.Data.(eventPayload.LinkVisitedEvent)
-		if !ok {
-			log.Printf("EventLinkVisited: unexpected data type: %T\n", msg.Data)
-			continue
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case ev := <-events:
+			if ev.Kind != kafka.LinkVisitedKind {
+				continue
+			}
+			if err := s.repo.AddClick(uint32(ev.LinkID), uint64(ev.UserID)); err != nil {
+				log.Printf("stat upsert: %v", err)
+			}
 		}
-
-		s.StatRepository.AddClick(uint32(payload.LinkID), uint64(payload.UserID))
 	}
 }

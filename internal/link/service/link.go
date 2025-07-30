@@ -3,9 +3,11 @@ package service
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/sxd0/go_url-shortener/internal/link/model"
 	"github.com/sxd0/go_url-shortener/internal/link/repository"
+	"github.com/sxd0/go_url-shortener/pkg/kafka"
 )
 
 const (
@@ -14,13 +16,12 @@ const (
 )
 
 type LinkService struct {
-	repo *repository.LinkRepository
+	repo      *repository.LinkRepository
+	publisher *kafka.Publisher
 }
 
-func NewLinkService(repo *repository.LinkRepository) *LinkService {
-	return &LinkService{
-		repo: repo,
-	}
+func NewLinkService(repo *repository.LinkRepository, pub *kafka.Publisher) *LinkService {
+	return &LinkService{repo: repo, publisher: pub}
 }
 
 func (s *LinkService) CreateLink(ctx context.Context, url string, userID uint) (*model.Link, error) {
@@ -36,6 +37,14 @@ func (s *LinkService) CreateLink(ctx context.Context, url string, userID uint) (
 
 		created, err := s.repo.Create(link)
 		if err == nil {
+			if s.publisher != nil {
+				_ = s.publisher.Publish(ctx, kafka.Event{
+					Kind:   kafka.LinkCreatedKind,
+					LinkID: created.ID,
+					UserID: userID,
+					Ts:     time.Now().UTC(),
+				})
+			}
 			return created, nil
 		}
 	}
