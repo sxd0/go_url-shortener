@@ -4,26 +4,52 @@ import (
 	"context"
 	"time"
 
-	"github.com/redis/go-redis/v9"
+	goredis "github.com/redis/go-redis/v9"
 )
 
-var ctx = context.Background()
+type Client struct {
+	*goredis.Client
+}
 
-type Client struct{ *redis.Client }
+type Options struct {
+	Addr          string
+	DialTimeout   time.Duration
+	ReadTimeout   time.Duration
+	WriteTimeout  time.Duration
+	PoolSize      int
+	MinIdleConns  int
+}
 
-func New(addr string) *Client {
-	rdb := redis.NewClient(&redis.Options{Addr: addr})
+func New(ctx context.Context, opts Options) (*Client, error) {
+	rdb := goredis.NewClient(&goredis.Options{
+		Addr:         opts.Addr,
+		DialTimeout:  opts.DialTimeout,
+		ReadTimeout:  opts.ReadTimeout,
+		WriteTimeout: opts.WriteTimeout,
+		PoolSize:     opts.PoolSize,
+		MinIdleConns: opts.MinIdleConns,
+	})
 	if err := rdb.Ping(ctx).Err(); err != nil {
-		panic("redis: " + err.Error())
+		return nil, err
 	}
-	return &Client{rdb}
+	return &Client{rdb}, nil
 }
 
-func (c *Client) SetString(key, val string, ttl time.Duration) {
-	_ = c.Set(ctx, key, val, ttl).Err()
+func (c *Client) Close() error {
+	return c.Client.Close()
 }
 
-func (c *Client) GetString(key string) (string, bool) {
+func (c *Client) SetString(ctx context.Context, key, val string, ttl time.Duration) error {
+	return c.Set(ctx, key, val, ttl).Err()
+}
+
+func (c *Client) GetString(ctx context.Context, key string) (string, bool, error) {
 	s, err := c.Get(ctx, key).Result()
-	return s, err == nil
+	if err == goredis.Nil {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, err
+	}
+	return s, true, nil
 }

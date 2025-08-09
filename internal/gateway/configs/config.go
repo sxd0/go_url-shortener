@@ -17,10 +17,22 @@ type Config struct {
 	PublicKey      string
 	AllowedOrigins []string
 	LogLevel       string
+
 	RedisAddr      string
-	LinkCacheTTL   int
-	RLTTL          int
-	RLLimit        int
+	RedisEnabled   bool
+	RedisDialMs    int
+	RedisReadMs    int
+	RedisWriteMs   int
+	RedisPoolSize  int
+	RedisMinIdle   int
+
+	LinkCacheTTL int // seconds
+
+	RLEnabled      bool
+	RLTTL          int    // seconds
+	RLLimit        int    // max requests per window
+	RLKeyMode      string // global | route | route+hash
+	TrustedProxies []string
 }
 
 func LoadConfig() *Config {
@@ -50,9 +62,20 @@ func LoadConfig() *Config {
 		LogLevel:       level,
 
 		RedisAddr:    getEnv("REDIS_ADDR", "redis:6379"),
+		RedisEnabled: mustBool(getEnv("REDIS_ENABLED", "true")),
+		RedisDialMs:  mustInt(getEnv("REDIS_DIAL_TIMEOUT_MS", "500")),
+		RedisReadMs:  mustInt(getEnv("REDIS_READ_TIMEOUT_MS", "200")),
+		RedisWriteMs: mustInt(getEnv("REDIS_WRITE_TIMEOUT_MS", "200")),
+		RedisPoolSize: mustInt(getEnv("REDIS_POOL_SIZE", "50")),
+		RedisMinIdle:  mustInt(getEnv("REDIS_MIN_IDLE_CONNS", "10")),
+
 		LinkCacheTTL: mustInt(getEnv("LINK_CACHE_TTL", "1800")),
-		RLTTL:        mustInt(getEnv("RL_TTL", "60")),
-		RLLimit:      mustInt(getEnv("RL_LIMIT", "50")),
+
+		RLEnabled:      mustBool(getEnv("RL_ENABLED", "true")),
+		RLTTL:          mustInt(getEnv("RL_TTL", "60")),
+		RLLimit:        mustInt(getEnv("RL_LIMIT", "50")),
+		RLKeyMode:      getEnv("RL_KEY_MODE", "route"),
+		TrustedProxies: splitCSV(getEnv("TRUSTED_PROXIES", "")),
 	}
 }
 
@@ -81,4 +104,9 @@ func splitCSV(s string) []string {
 func mustInt(s string) int {
 	i, _ := strconv.Atoi(s)
 	return i
+}
+
+func mustBool(s string) bool {
+	s = strings.ToLower(strings.TrimSpace(s))
+	return s == "true" || s == "1" || s == "yes" || s == "y"
 }

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 	"net/url"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/sxd0/go_url-shortener/proto/gen/go/authpb"
 	"github.com/sxd0/go_url-shortener/proto/gen/go/linkpb"
 	"github.com/sxd0/go_url-shortener/proto/gen/go/statpb"
+	"golang.org/x/sync/singleflight"
 )
 
 type RedirectDeps struct {
@@ -25,6 +27,14 @@ type RedirectDeps struct {
 	KafkaPublisher *kafka.Publisher
 }
 
+var sf singleflight.Group
+
+type redirData struct {
+	dest    string
+	linkID  uint
+	ownerID uint
+}
+
 func RedirectHandler(deps RedirectDeps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		hash := chi.URLParam(r, "hash")
@@ -32,39 +42,58 @@ func RedirectHandler(deps RedirectDeps) http.HandlerFunc {
 			http.NotFound(w, r)
 			return
 		}
+		cacheKey := "cache:link:" + hash
 
-		if dest, ok := deps.Cache.GetString("link:" + hash); ok {
-			http.Redirect(w, r, dest, http.StatusTemporaryRedirect)
-			return
+		if deps.Cache != nil {
+			ctx, cancel := context.WithTimeout(r.Context(), 120*time.Millisecond)
+			defer cancel()
+
+			if dest, ok, err := deps.Cache.GetString(ctx, cacheKey); err == nil && ok {
+				http.Redirect(w, r, dest, http.StatusTemporaryRedirect)
+				return
+			}
 		}
 
-		grpcCtx := middleware.AttachCommonMD(r.Context(), r)
-
-		linkResp, err := deps.LinkClient.GetLinkByHash(grpcCtx, &linkpb.GetLinkByHashRequest{Hash: hash})
-		if err != nil || linkResp.GetLink() == nil {
+		v, err, _ := sf.Do(cacheKey, func() (interface{}, error) {
+			grpcCtx := middleware.AttachCommonMD(r.Context(), r)
+			linkResp, err := deps.LinkClient.GetLinkByHash(grpcCtx, &linkpb.GetLinkByHashRequest{Hash: hash})
+			if err != nil || linkResp.GetLink() == nil {
+				return nil, err
+			}
+			link := linkResp.GetLink()
+			return redirData{
+				dest:    link.GetUrl(),
+				linkID:  uint(link.GetId()),
+				ownerID: uint(link.GetUserId()),
+			}, nil
+		})
+		if err != nil || v == nil {
 			http.NotFound(w, r)
 			return
 		}
+		data := v.(redirData)
 
-		dest := linkResp.GetLink().GetUrl()
-		u, err := url.ParseRequestURI(dest)
+		u, err := url.ParseRequestURI(data.dest)
 		if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
 			http.Error(w, "invalid url", http.StatusBadRequest)
 			return
 		}
 
+		if deps.Cache != nil {
+			ctx, cancel := context.WithTimeout(r.Context(), 120*time.Millisecond)
+			_ = deps.Cache.SetString(ctx, cacheKey, data.dest, deps.CacheTTL)
+			cancel()
+		}
+
 		if deps.KafkaPublisher != nil {
 			_ = deps.KafkaPublisher.Publish(r.Context(), kafka.Event{
 				Kind:   kafka.LinkVisitedKind,
-				LinkID: uint(linkResp.GetLink().GetId()),
-				UserID: uint(linkResp.GetLink().GetUserId()),
+				LinkID: data.linkID,
+				UserID: data.ownerID,
 				Ts:     time.Now().UTC(),
 			})
-		} else {
-			http.Error(w, "Kafka publisher is nil – click event not sent", http.StatusBadRequest)
 		}
 
-		deps.Cache.SetString("link:"+hash, dest, deps.CacheTTL)
 		http.Redirect(w, r, u.String(), http.StatusTemporaryRedirect)
 	}
 }

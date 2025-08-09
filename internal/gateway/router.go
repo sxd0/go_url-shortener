@@ -21,12 +21,16 @@ func NewRouter(deps RedirectDeps, cfg *configs.Config) http.Handler {
 	r.Use(middleware.CORSMiddlewareWithCfg(cfg))
 	r.Use(middleware.PrometheusMiddleware)
 
-	rl := &middleware.RLConfig{
-		Limit: cfg.RLLimit,
-		TTL:   time.Duration(cfg.RLTTL) * time.Second,
-		Redis: deps.Cache.Client,
+	if cfg.RLEnabled && deps.Cache != nil && deps.Cache.Client != nil {
+		rl := &middleware.RLConfig{
+			Limit:          cfg.RLLimit,
+			TTL:            time.Duration(cfg.RLTTL) * time.Second,
+			Redis:          deps.Cache.Client,
+			TrustedProxies: cfg.TrustedProxies,
+			KeyMode:        cfg.RLKeyMode,
+		}
+		r.Use(rl.Handler)
 	}
-	r.Use(rl.Handler)
 
 	openapi.Mount(r)
 	r.Handle("/metrics", promhttp.Handler())

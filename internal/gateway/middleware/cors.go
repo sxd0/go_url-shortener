@@ -12,7 +12,7 @@ func CORSMiddlewareWithCfg(cfg *configs.Config) func(http.Handler) http.Handler 
 		allowed := cfg.AllowedOrigins
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			origin := r.Header.Get("Origin")
-			if origin != "" && slices.Contains(allowed, origin) {
+			if origin == "http://localhost:5173" || (origin != "" && slices.Contains(allowed, origin)) {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
 				w.Header().Set("Vary", "Origin")
 				w.Header().Set("Access-Control-Allow-Credentials", "true")

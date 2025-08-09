@@ -1,9 +1,12 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"time"
 
 	"github.com/sxd0/go_url-shortener/internal/gateway"
 	"github.com/sxd0/go_url-shortener/internal/gateway/configs"
@@ -42,7 +45,25 @@ func main() {
 	producer := kafka.NewPublisher([]string{kafkaAddr}, "link.events")
 	defer producer.Close()
 
-	rdb := redis.New(cfg.RedisAddr)
+	var rdb *redis.Client
+	if cfg.RedisEnabled {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(cfg.RedisDialMs)*time.Millisecond)
+		defer cancel()
+		rdb, err = redis.New(ctx, redis.Options{
+			Addr:         cfg.RedisAddr,
+			DialTimeout:  time.Duration(cfg.RedisDialMs) * time.Millisecond,
+			ReadTimeout:  time.Duration(cfg.RedisReadMs) * time.Millisecond,
+			WriteTimeout: time.Duration(cfg.RedisWriteMs) * time.Millisecond,
+			PoolSize:     cfg.RedisPoolSize,
+			MinIdleConns: cfg.RedisMinIdle,
+		})
+		if err != nil {
+			log.Printf("WARNING: redis disabled (connect failed): %v", err)
+			rdb = nil
+		}
+	} else {
+		log.Printf("INFO: redis disabled by config")
+	}
 
 	router := gateway.NewRouter(gateway.RedirectDeps{
 		Verifier:   verifier,
@@ -52,8 +73,31 @@ func main() {
 		Cache:      rdb,
 	}, cfg)
 
-	log.Printf("Gateway listening on :%s", cfg.Port)
-	if err := http.ListenAndServe(":"+cfg.Port, router); err != nil {
-		log.Fatal(err)
+	srv := &http.Server{
+		Addr:         ":" + cfg.Port,
+		Handler:      router,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	go func() {
+		log.Printf("Gateway listening on :%s", cfg.Port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal(err)
+		}
+	}()
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt)
+	<-stop
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Printf("HTTP shutdown error: %v", err)
+	}
+	if rdb != nil {
+		_ = rdb.Close()
 	}
 }
