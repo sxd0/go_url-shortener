@@ -10,8 +10,9 @@ const (
 )
 
 type Event struct {
-	Kind   Kind      `json:"kind"`
-	LinkID uint      `json:"link_id,omitempty"`
-	UserID uint      `json:"user_id,omitempty"`
-	Ts     time.Time `json:"ts"`
+	Version int32     `json:"version"`
+	Kind    Kind      `json:"kind"`
+	LinkID  uint      `json:"link_id,omitempty"`
+	UserID  uint      `json:"user_id,omitempty"`
+	Ts      time.Time `json:"ts"`
 }

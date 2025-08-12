@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/url"
 	"time"
@@ -29,10 +30,10 @@ type RedirectDeps struct {
 
 var sf singleflight.Group
 
-type redirData struct {
-	dest    string
-	linkID  uint
-	ownerID uint
+type cachedLink struct {
+	Dest    string `json:"u"`
+	LinkID  uint   `json:"lid"`
+	OwnerID uint   `json:"oid"`
 }
 
 func RedirectHandler(deps RedirectDeps) http.HandlerFunc {
@@ -42,54 +43,71 @@ func RedirectHandler(deps RedirectDeps) http.HandlerFunc {
 			http.NotFound(w, r)
 			return
 		}
-		cacheKey := "cache:link:" + hash
+
+		cacheKey := "cache:link:v2:" + hash
 
 		if deps.Cache != nil {
 			ctx, cancel := context.WithTimeout(r.Context(), 120*time.Millisecond)
-			defer cancel()
-
-			if dest, ok, err := deps.Cache.GetString(ctx, cacheKey); err == nil && ok {
-				http.Redirect(w, r, dest, http.StatusTemporaryRedirect)
-				return
+			if raw, ok, err := deps.Cache.GetString(ctx, cacheKey); err == nil && ok {
+				cancel()
+				var cl cachedLink
+				if err := json.Unmarshal([]byte(raw), &cl); err == nil && cl.Dest != "" {
+					if u, err := url.ParseRequestURI(cl.Dest); err == nil && (u.Scheme == "http" || u.Scheme == "https") {
+						if deps.KafkaPublisher != nil {
+							_ = deps.KafkaPublisher.Publish(r.Context(), kafka.Event{
+								Kind:   kafka.LinkVisitedKind,
+								LinkID: cl.LinkID,
+								UserID: cl.OwnerID, 
+								Ts:     time.Now().UTC(),
+							})
+						}
+						http.Redirect(w, r, cl.Dest, http.StatusTemporaryRedirect)
+						return
+					}
+				}
+			} else {
+				cancel()
 			}
 		}
 
 		v, err, _ := sf.Do(cacheKey, func() (interface{}, error) {
 			grpcCtx := middleware.AttachCommonMD(r.Context(), r)
-			linkResp, err := deps.LinkClient.GetLinkByHash(grpcCtx, &linkpb.GetLinkByHashRequest{Hash: hash})
-			if err != nil || linkResp.GetLink() == nil {
+			resp, err := deps.LinkClient.GetLinkByHash(grpcCtx, &linkpb.GetLinkByHashRequest{Hash: hash})
+			if err != nil || resp.GetLink() == nil {
 				return nil, err
 			}
-			link := linkResp.GetLink()
-			return redirData{
-				dest:    link.GetUrl(),
-				linkID:  uint(link.GetId()),
-				ownerID: uint(link.GetUserId()),
+			lnk := resp.GetLink()
+			return cachedLink{
+				Dest:    lnk.GetUrl(),
+				LinkID:  uint(lnk.GetId()),
+				OwnerID: uint(lnk.GetUserId()),
 			}, nil
 		})
 		if err != nil || v == nil {
 			http.NotFound(w, r)
 			return
 		}
-		data := v.(redirData)
+		cl := v.(cachedLink)
 
-		u, err := url.ParseRequestURI(data.dest)
+		u, err := url.ParseRequestURI(cl.Dest)
 		if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
 			http.Error(w, "invalid url", http.StatusBadRequest)
 			return
 		}
 
 		if deps.Cache != nil {
-			ctx, cancel := context.WithTimeout(r.Context(), 120*time.Millisecond)
-			_ = deps.Cache.SetString(ctx, cacheKey, data.dest, deps.CacheTTL)
-			cancel()
+			if b, err := json.Marshal(cl); err == nil {
+				ctx, cancel := context.WithTimeout(r.Context(), 120*time.Millisecond)
+				_ = deps.Cache.SetString(ctx, cacheKey, string(b), deps.CacheTTL)
+				cancel()
+			}
 		}
 
 		if deps.KafkaPublisher != nil {
 			_ = deps.KafkaPublisher.Publish(r.Context(), kafka.Event{
 				Kind:   kafka.LinkVisitedKind,
-				LinkID: data.linkID,
-				UserID: data.ownerID,
+				LinkID: cl.LinkID,
+				UserID: cl.OwnerID,
 				Ts:     time.Now().UTC(),
 			})
 		}

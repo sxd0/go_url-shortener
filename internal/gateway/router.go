@@ -63,10 +63,11 @@ func NewRouter(deps RedirectDeps, cfg *configs.Config) http.Handler {
 
 	// Redirect
 	r.Get("/r/{hash}", handler.RedirectHandler(handler.RedirectDeps{
-		LinkClient: deps.LinkClient,
-		StatClient: deps.StatClient,
-		Cache:      deps.Cache,
-		CacheTTL:   time.Duration(cfg.LinkCacheTTL) * time.Second,
+		LinkClient:     deps.LinkClient,
+		StatClient:     deps.StatClient,
+		Cache:          deps.Cache,
+		CacheTTL:       time.Duration(cfg.LinkCacheTTL) * time.Second,
+		KafkaPublisher: deps.KafkaPublisher,
 	}))
 
 	// STATS

@@ -33,6 +33,15 @@ type Config struct {
 	RLLimit        int    // max requests per window
 	RLKeyMode      string // global | route | route+hash
 	TrustedProxies []string
+
+	KafkaAddr           string
+	KafkaTopic          string
+	KafkaAcks           string
+	KafkaBatchSize      int
+	KafkaBatchTimeoutMs int
+	KafkaCompression    string
+	KafkaPublishQueue   int
+	KafkaPublishWorkers int
 }
 
 func LoadConfig() *Config {
@@ -76,6 +85,15 @@ func LoadConfig() *Config {
 		RLLimit:        mustInt(getEnv("RL_LIMIT", "50")),
 		RLKeyMode:      getEnv("RL_KEY_MODE", "route"),
 		TrustedProxies: splitCSV(getEnv("TRUSTED_PROXIES", "")),
+
+		KafkaAddr:           getEnv("KAFKA_ADDR", "kafka:9092"),
+		KafkaTopic:          getEnv("KAFKA_TOPIC", "link.events"),
+		KafkaAcks:           getEnv("KAFKA_ACKS", "1"),
+		KafkaBatchSize:      mustInt(getEnv("KAFKA_BATCH_SIZE", "200")),
+		KafkaBatchTimeoutMs: mustInt(getEnv("KAFKA_BATCH_TIMEOUT_MS", "100")),
+		KafkaCompression:    getEnv("KAFKA_COMPRESSION", "snappy"),
+		KafkaPublishQueue:   mustInt(getEnv("KAFKA_PUBLISH_QUEUE", "2048")),
+		KafkaPublishWorkers: mustInt(getEnv("KAFKA_PUBLISH_WORKERS", "2")),
 	}
 }
 

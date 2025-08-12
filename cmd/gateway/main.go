@@ -38,11 +38,16 @@ func main() {
 		log.Fatalf("stat client: %v", err)
 	}
 
-	kafkaAddr := os.Getenv("KAFKA_ADDR")
-	if kafkaAddr == "" {
-		kafkaAddr = "kafka:9092"
-	}
-	producer := kafka.NewPublisher([]string{kafkaAddr}, "link.events")
+	producer := kafka.NewPublisherWithConfig(kafka.PubConfig{
+		Brokers:      []string{cfg.KafkaAddr},
+		Topic:        cfg.KafkaTopic,
+		Acks:         cfg.KafkaAcks,                  // "1" по умолчанию
+		BatchSize:    cfg.KafkaBatchSize,             // 200
+		BatchTimeout: time.Duration(cfg.KafkaBatchTimeoutMs) * time.Millisecond,
+		Compression:  cfg.KafkaCompression,           // snappy
+		QueueSize:    cfg.KafkaPublishQueue,          // 2048
+		Workers:      cfg.KafkaPublishWorkers,        // 2
+	})
 	defer producer.Close()
 
 	var rdb *redis.Client
@@ -71,6 +76,7 @@ func main() {
 		LinkClient: linkSvc.Client(),
 		StatClient: statSvc.Client(),
 		Cache:      rdb,
+		KafkaPublisher: producer,
 	}, cfg)
 
 	srv := &http.Server{
