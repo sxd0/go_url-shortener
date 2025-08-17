@@ -198,11 +198,43 @@ services:
       - link_service
       - stat_service
 
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.7
+    container_name: clickhouse
+    environment:
+      - CLICKHOUSE_DB=url_shortener
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
+    volumes:
+      - ./deploy/clickhouse/init:/docker-entrypoint-initdb.d
+      - clickhouse_data:/var/lib/clickhouse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    depends_on:
+      - kafka
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=grafana-clickhouse-datasource
+    volumes:
+      - ./deploy/grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./deploy/grafana/dashboards:/etc/grafana/provisioning/dashboards
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+      - clickhouse
+
 
 volumes:
   auth_postgres_data:
   link_postgres_data:
   stat_postgres_data:
+  clickhouse_data:
 
 networks:
   default:
