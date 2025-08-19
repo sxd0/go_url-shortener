@@ -50,8 +50,11 @@ func NewStatRepository(db *gorm.DB) *StatRepository {
 // 	repo.Db.Save(&stat)
 // }
 
-func (r *StatRepository) AddClick(linkID uint32, userID uint64) error {
-	day := time.Now().UTC().Truncate(24 * time.Hour)
+func (r *StatRepository) AddClick(linkID uint32, userID uint64, ts time.Time) error {
+	if ts.IsZero() {
+		ts = time.Now().UTC()
+	}
+	day := ts.UTC().Truncate(24 * time.Hour)
 	currentDate := datatypes.Date(day)
 
 	stat := model.Stat{

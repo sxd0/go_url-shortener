@@ -29,7 +29,7 @@ func (s *StatService) Start(ctx context.Context) error {
 			if ev.Kind != kafka.LinkVisitedKind {
 				continue
 			}
-			if err := s.repo.AddClick(uint32(ev.LinkID), uint64(ev.UserID)); err != nil {
+			if err := s.repo.AddClick(uint32(ev.LinkID), uint64(ev.UserID), ev.Ts); err != nil {
 				log.Printf("stat upsert: %v", err)
 			}
 		}

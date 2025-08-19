@@ -74,7 +74,7 @@ func (h *GRPCHandler) AddClick(ctx context.Context, req *statpb.AddClickRequest)
 		return nil, status.Error(codes.InvalidArgument, "link_id is required")
 	}
 
-	if err := h.Repo.AddClick(uint32(req.LinkId), uint64(req.UserId)); err != nil {
+	if err := h.Repo.AddClick(uint32(req.LinkId), uint64(req.UserId), time.Now().UTC()); err != nil {
 		return nil, status.Error(codes.Internal, "failed to save click")
 	}
 	return &statpb.Empty{}, nil
