@@ -105,9 +105,9 @@ URL по умолчанию:
 go test ./...
 ```
 
-Нагрузочное тестирование
+Нефункциональные требования
 ```bash
-go run ./tools/loadtest -url http://localhost:8080/ -n 1000 -c 50
+(go run ./tools/echoserver &) && sleep 1 && go run ./tools/loadtest -url http://localhost:8080/ -n 1000 -c 50
 ```
 
 Преимущества
