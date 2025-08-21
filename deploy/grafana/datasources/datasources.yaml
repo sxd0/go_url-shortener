@@ -14,9 +14,9 @@ datasources:
     jsonData:
       server: clickhouse
       port: 8123
+      protocol: http
       defaultDatabase: url_shortener
       username: default
       tlsSkipVerify: true
     secureJsonData:
       password: ""
-

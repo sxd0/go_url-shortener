@@ -1,254 +1,254 @@
-services:
-  auth_postgres:
-    image: postgres:17
-    restart: always
-    container_name: auth_postgres
-    env_file:
-      - ./cmd/auth/.env
-    ports:
-      - "5434:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 3s
-      timeout: 2s
-      retries: 5
-    volumes:
-      - auth_postgres_data:/var/lib/postgresql/data
+  services:
+    auth_postgres:
+      image: postgres:17
+      restart: always
+      container_name: auth_postgres
+      env_file:
+        - ./cmd/auth/.env
+      ports:
+        - "5434:5432"
+      healthcheck:
+        test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+        interval: 3s
+        timeout: 2s
+        retries: 5
+      volumes:
+        - auth_postgres_data:/var/lib/postgresql/data
 
-  auth_migrate:
-    image: migrate/migrate
-    container_name: auth_migrate
-    depends_on:
-      auth_postgres:
-        condition: service_healthy
-    volumes:
-      - ./internal/auth/migrations:/migrations
-    env_file:
-      - ./cmd/auth/.env
-    command:
-      [
-        "-path", "/migrations",
-        "-database", "postgres://postgres:my_pass@auth_postgres:5432/auth_db?sslmode=disable",
-        "up"
-      ]
+    auth_migrate:
+      image: migrate/migrate
+      container_name: auth_migrate
+      depends_on:
+        auth_postgres:
+          condition: service_healthy
+      volumes:
+        - ./internal/auth/migrations:/migrations
+      env_file:
+        - ./cmd/auth/.env
+      command:
+        [
+          "-path", "/migrations",
+          "-database", "postgres://postgres:my_pass@auth_postgres:5432/auth_db?sslmode=disable",
+          "up"
+        ]
 
-  auth_service:
-    build:
-      context: .
-      dockerfile: ./cmd/auth/Dockerfile
-    container_name: auth_service
-    env_file:
-      - ./cmd/auth/.env
-    depends_on:
-      kafka:
-        condition: service_started
-      auth_postgres:
-        condition: service_healthy
-    ports:
-      - "50051:50051"
-      - "9101:9101"
-    volumes:
-      - ./jwt_private.pem:/app/jwt_private.pem
-      - ./jwt_public.pem:/app/jwt_public.pem
+    auth_service:
+      build:
+        context: .
+        dockerfile: ./cmd/auth/Dockerfile
+      container_name: auth_service
+      env_file:
+        - ./cmd/auth/.env
+      depends_on:
+        kafka:
+          condition: service_started
+        auth_postgres:
+          condition: service_healthy
+      ports:
+        - "50051:50051"
+        - "9101:9101"
+      volumes:
+        - ./jwt_private.pem:/app/jwt_private.pem
+        - ./jwt_public.pem:/app/jwt_public.pem
 
-  link_postgres:
-    image: postgres:17
-    restart: always
-    container_name: link_postgres
-    env_file:
-      - ./cmd/link/.env
-    ports:
-      - "5435:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 3s
-      timeout: 2s
-      retries: 5
-    volumes:
-      - link_postgres_data:/var/lib/postgresql/data
+    link_postgres:
+      image: postgres:17
+      restart: always
+      container_name: link_postgres
+      env_file:
+        - ./cmd/link/.env
+      ports:
+        - "5435:5432"
+      healthcheck:
+        test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+        interval: 3s
+        timeout: 2s
+        retries: 5
+      volumes:
+        - link_postgres_data:/var/lib/postgresql/data
 
-  link_migrate:
-    image: migrate/migrate
-    container_name: link_migrate
-    depends_on:
-      link_postgres:
-        condition: service_healthy
-    volumes:
-      - ./internal/link/migrations:/migrations
-    env_file:
-      - ./cmd/link/.env
-    command:
-      [
-        "-path", "/migrations",
-        "-database", "postgres://postgres:my_pass@link_postgres:5432/link_db?sslmode=disable",
-        "up"
-      ]
+    link_migrate:
+      image: migrate/migrate
+      container_name: link_migrate
+      depends_on:
+        link_postgres:
+          condition: service_healthy
+      volumes:
+        - ./internal/link/migrations:/migrations
+      env_file:
+        - ./cmd/link/.env
+      command:
+        [
+          "-path", "/migrations",
+          "-database", "postgres://postgres:my_pass@link_postgres:5432/link_db?sslmode=disable",
+          "up"
+        ]
 
-  link_service:
-    build:
-      context: .
-      dockerfile: ./cmd/link/Dockerfile
-    container_name: link_service
-    env_file:
-      - ./cmd/link/.env
-    depends_on:
-      kafka:
-        condition: service_started
-      link_postgres:
-        condition: service_healthy
-    ports:
-      - "50052:50052"
-      - "9102:9102"
+    link_service:
+      build:
+        context: .
+        dockerfile: ./cmd/link/Dockerfile
+      container_name: link_service
+      env_file:
+        - ./cmd/link/.env
+      depends_on:
+        kafka:
+          condition: service_started
+        link_postgres:
+          condition: service_healthy
+      ports:
+        - "50052:50052"
+        - "9102:9102"
 
-  stat_postgres:
-    image: postgres:17
-    restart: always
-    container_name: stat_postgres
-    env_file:
-      - ./cmd/stat/.env
-    ports:
-      - "5436:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 3s
-      timeout: 2s
-      retries: 5
-    volumes:
-      - stat_postgres_data:/var/lib/postgresql/data
+    stat_postgres:
+      image: postgres:17
+      restart: always
+      container_name: stat_postgres
+      env_file:
+        - ./cmd/stat/.env
+      ports:
+        - "5436:5432"
+      healthcheck:
+        test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+        interval: 3s
+        timeout: 2s
+        retries: 5
+      volumes:
+        - stat_postgres_data:/var/lib/postgresql/data
 
-  stat_migrate:
-    image: migrate/migrate
-    container_name: stat_migrate
-    depends_on:
-      stat_postgres:
-        condition: service_healthy
-    volumes:
-      - ./internal/stat/migrations:/migrations
-    env_file:
-      - ./cmd/stat/.env
-    command:
-      [
-        "-path", "/migrations",
-        "-database", "postgres://postgres:my_pass@stat_postgres:5432/stat_db?sslmode=disable",
-        "up"
-      ]
+    stat_migrate:
+      image: migrate/migrate
+      container_name: stat_migrate
+      depends_on:
+        stat_postgres:
+          condition: service_healthy
+      volumes:
+        - ./internal/stat/migrations:/migrations
+      env_file:
+        - ./cmd/stat/.env
+      command:
+        [
+          "-path", "/migrations",
+          "-database", "postgres://postgres:my_pass@stat_postgres:5432/stat_db?sslmode=disable",
+          "up"
+        ]
 
-  stat_service:
-    build:
-      context: .
-      dockerfile: ./cmd/stat/Dockerfile
-    container_name: stat_service
-    env_file:
-      - ./cmd/stat/.env
-    depends_on:
-      kafka:
-        condition: service_started
-      stat_postgres:
-        condition: service_healthy
-    ports:
-      - "50053:50053"
-      - "9103:9103"
+    stat_service:
+      build:
+        context: .
+        dockerfile: ./cmd/stat/Dockerfile
+      container_name: stat_service
+      env_file:
+        - ./cmd/stat/.env
+      depends_on:
+        kafka:
+          condition: service_started
+        stat_postgres:
+          condition: service_healthy
+      ports:
+        - "50053:50053"
+        - "9103:9103"
 
-  gateway_service:
-    build:
-      context: .
-      dockerfile: ./cmd/gateway/Dockerfile
-    container_name: gateway_service
-    env_file:
-      - ./cmd/gateway/.env
-    depends_on:
-      - kafka
-      - auth_service
-      - link_service
-      - stat_service
-      - redis
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./jwt_public.pem:/app/jwt_public.pem
+    gateway_service:
+      build:
+        context: .
+        dockerfile: ./cmd/gateway/Dockerfile
+      container_name: gateway_service
+      env_file:
+        - ./cmd/gateway/.env
+      depends_on:
+        - kafka
+        - auth_service
+        - link_service
+        - stat_service
+        - redis
+      ports:
+        - "8080:8080"
+      volumes:
+        - ./jwt_public.pem:/app/jwt_public.pem
 
-  redis:
-    image: redis:7-alpine
-    ports: ["6379:6379"]
-    container_name: redis_service
+    redis:
+      image: redis:7-alpine
+      ports: ["6379:6379"]
+      container_name: redis_service
 
-  prometheus:
-    image: prom/prometheus:v2.49.0
-    container_name: prometheus
-    volumes:
-      - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    ports:
-      - "9090:9090"
-    depends_on:
-      - gateway_service
-      - auth_service
-      - link_service
-      - stat_service
+    prometheus:
+      image: prom/prometheus:v2.49.0
+      container_name: prometheus
+      volumes:
+        - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      ports:
+        - "9090:9090"
+      depends_on:
+        - gateway_service
+        - auth_service
+        - link_service
+        - stat_service
 
-  kafka:
-    image: bitnami/kafka:latest
-    container_name: kafka
-    env_file:
-      - ./deploy/kafka/.env
-    ports:
-      - "9092:9092"
+    kafka:
+      image: bitnami/kafka:latest
+      container_name: kafka
+      env_file:
+        - ./deploy/kafka/.env
+      ports:
+        - "9092:9092"
 
-  kafka-init:
-    image: bitnami/kafka:latest
-    container_name: kafka_init
-    depends_on:
-      kafka:
-        condition: service_started
-    entrypoint: ["/bin/bash","-lc"]
-    command:
-      - |
-        for i in {1..30}; do
-          /opt/bitnami/kafka/bin/kafka-topics.sh \
-            --bootstrap-server kafka:9092 \
-            --create --if-not-exists \
-            --topic link.events \
-            --replication-factor 1 \
-            --partitions 3 && exit 0
-          echo "Kafka not ready yet, retrying in 2s... ($i)"
-          sleep 2
-        done
-        echo "Failed to create topic link.events" >&2
-        exit 1
-  clickhouse:
-    image: clickhouse/clickhouse-server:24.7
-    container_name: clickhouse
-    env_file:
-      - ./deploy/clickhouse/.env
-    volumes:
-      - ./deploy/clickhouse/init:/docker-entrypoint-initdb.d
-      - clickhouse_data:/var/lib/clickhouse
-    ports:
-      - "8123:8123"
-      - "9000:9000"
-    depends_on:
-      - kafka
+    kafka-init:
+      image: bitnami/kafka:latest
+      container_name: kafka_init
+      depends_on:
+        kafka:
+          condition: service_started
+      entrypoint: ["/bin/bash","-lc"]
+      command:
+        - |
+          for i in {1..30}; do
+            /opt/bitnami/kafka/bin/kafka-topics.sh \
+              --bootstrap-server kafka:9092 \
+              --create --if-not-exists \
+              --topic link.events \
+              --replication-factor 1 \
+              --partitions 3 && exit 0
+            echo "Kafka not ready yet, retrying in 2s... ($i)"
+            sleep 2
+          done
+          echo "Failed to create topic link.events" >&2
+          exit 1
+    clickhouse:
+      image: clickhouse/clickhouse-server:24.7
+      container_name: clickhouse
+      env_file:
+        - ./deploy/clickhouse/.env
+      volumes:
+        - ./deploy/clickhouse/init:/docker-entrypoint-initdb.d
+        - clickhouse_data:/var/lib/clickhouse
+      ports:
+        - "8123:8123"
+        - "9000:9000"
+      depends_on:
+        - kafka
 
-  grafana:
-    image: grafana/grafana:11.2.0
-    container_name: grafana
-    env_file:
-      - ./deploy/grafana/.env
-    volumes:
-      - ./deploy/grafana/datasources:/etc/grafana/provisioning/datasources
-      - ./deploy/grafana/dashboards:/etc/grafana/provisioning/dashboards
-    ports:
-      - "3000:3000"
-    depends_on:
-      - prometheus
-      - clickhouse
+    grafana:
+      image: grafana/grafana:11.2.0
+      container_name: grafana
+      env_file:
+        - ./deploy/grafana/.env
+      volumes:
+        - ./deploy/grafana/datasources:/etc/grafana/provisioning/datasources
+        - ./deploy/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      ports:
+        - "3000:3000"
+      depends_on:
+        - prometheus
+        - clickhouse
 
 
-volumes:
-  auth_postgres_data:
-  link_postgres_data:
-  stat_postgres_data:
-  clickhouse_data:
+  volumes:
+    auth_postgres_data:
+    link_postgres_data:
+    stat_postgres_data:
+    clickhouse_data:
 
-networks:
-  default:
-    driver: bridge
+  networks:
+    default:
+      driver: bridge
