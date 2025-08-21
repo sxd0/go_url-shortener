@@ -20,41 +20,14 @@ type StatRepository struct {
 }
 
 func NewStatRepository(db *gorm.DB) *StatRepository {
-	return &StatRepository{
-		Db: db,
-	}
+	return &StatRepository{Db: db}
 }
-
-// func (repo *StatRepository) AddClick(linkId uint, userID uint) {
-// 	today := time.Now().Format("2006-01-02")
-// 	date, _ := time.Parse("2006-01-02", today)
-// 	currentDate := datatypes.Date(date)
-
-// 	var stat model.Stat
-// 	err := repo.Db.First(&stat, "link_id = ? AND user_id = ? AND date = ?", linkId, userID, currentDate).Error
-// 	if err != nil {
-// 		if errors.Is(err, gorm.ErrRecordNotFound) {
-// 			newStat := model.Stat{
-// 				LinkId: linkId,
-// 				UserID: userID,
-// 				Clicks: 1,
-// 				Date:   currentDate,
-// 			}
-// 			repo.Db.Create(&newStat)
-// 			return
-// 		}
-// 		return
-// 	}
-
-// 	stat.Clicks += 1
-// 	repo.Db.Save(&stat)
-// }
 
 func (r *StatRepository) AddClick(linkID uint32, userID uint64, ts time.Time) error {
 	if ts.IsZero() {
 		ts = time.Now().UTC()
 	}
-	day := ts.UTC().Truncate(24 * time.Hour)
+	day := time.Date(ts.Year(), ts.Month(), ts.Day(), 0, 0, 0, 0, time.UTC)
 	currentDate := datatypes.Date(day)
 
 	stat := model.Stat{
@@ -65,8 +38,11 @@ func (r *StatRepository) AddClick(linkID uint32, userID uint64, ts time.Time) er
 	}
 
 	return r.Db.Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "link_id"}, {Name: "date"}},
-		DoUpdates: clause.Assignments(map[string]any{"clicks": gorm.Expr("stats.clicks + 1")}),
+		Columns: []clause.Column{{Name: "link_id"}, {Name: "date"}},
+		DoUpdates: clause.Assignments(map[string]any{
+			"clicks":     gorm.Expr("stats.clicks + EXCLUDED.clicks"),
+			"updated_at": gorm.Expr("NOW()"),
+		}),
 	}).Create(&stat).Error
 }
 

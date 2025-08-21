@@ -86,7 +86,7 @@ func main() {
 			w.Write([]byte("ok"))
 		})
 		r.Handle("/metrics", promhttp.Handler())
-		log.Println("Stat HTTP health on :9101")
+		log.Println("Stat HTTP health on :9103")
 		http.ListenAndServe(":9103", r)
 	}()
 

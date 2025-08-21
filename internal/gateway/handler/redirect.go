@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"net/url"
 	"time"
@@ -57,7 +58,7 @@ func RedirectHandler(deps RedirectDeps) http.HandlerFunc {
 							_ = deps.KafkaPublisher.Publish(r.Context(), kafka.Event{
 								Kind:   kafka.LinkVisitedKind,
 								LinkID: cl.LinkID,
-								UserID: cl.OwnerID, 
+								UserID: cl.OwnerID,
 								Ts:     time.Now().UTC(),
 							})
 						}
@@ -104,12 +105,18 @@ func RedirectHandler(deps RedirectDeps) http.HandlerFunc {
 		}
 
 		if deps.KafkaPublisher != nil {
-			_ = deps.KafkaPublisher.Publish(r.Context(), kafka.Event{
+			if err := deps.KafkaPublisher.Publish(r.Context(), kafka.Event{
 				Kind:   kafka.LinkVisitedKind,
 				LinkID: cl.LinkID,
 				UserID: cl.OwnerID,
 				Ts:     time.Now().UTC(),
-			})
+			}); err != nil {
+				log.Printf("[KAFKA][PUBLISH][FAIL] link_id=%d user_id=%d err=%v", cl.LinkID, cl.OwnerID, err)
+			} else {
+				log.Printf("[KAFKA][PUBLISH][OK] link_id=%d user_id=%d", cl.LinkID, cl.OwnerID)
+			}
+		} else {
+			log.Printf("[KAFKA][SKIP] publisher is nil")
 		}
 
 		http.Redirect(w, r, u.String(), http.StatusTemporaryRedirect)

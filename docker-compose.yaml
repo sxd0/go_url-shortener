@@ -40,6 +40,8 @@ services:
     env_file:
       - ./cmd/auth/.env
     depends_on:
+      kafka:
+        condition: service_started
       auth_postgres:
         condition: service_healthy
     ports:
@@ -90,6 +92,8 @@ services:
     env_file:
       - ./cmd/link/.env
     depends_on:
+      kafka:
+        condition: service_started
       link_postgres:
         condition: service_healthy
     ports:
@@ -137,6 +141,8 @@ services:
     env_file:
       - ./cmd/stat/.env
     depends_on:
+      kafka:
+        condition: service_started
       stat_postgres:
         condition: service_healthy
     ports:
@@ -151,6 +157,7 @@ services:
     env_file:
       - ./cmd/gateway/.env
     depends_on:
+      - kafka
       - auth_service
       - link_service
       - stat_service
@@ -185,12 +192,28 @@ services:
       - ./deploy/kafka/.env
     ports:
       - "9092:9092"
-    depends_on:
-      - gateway_service
-      - auth_service
-      - link_service
-      - stat_service
 
+  kafka-init:
+    image: bitnami/kafka:latest
+    container_name: kafka_init
+    depends_on:
+      kafka:
+        condition: service_started
+    entrypoint: ["/bin/bash","-lc"]
+    command:
+      - |
+        for i in {1..30}; do
+          /opt/bitnami/kafka/bin/kafka-topics.sh \
+            --bootstrap-server kafka:9092 \
+            --create --if-not-exists \
+            --topic link.events \
+            --replication-factor 1 \
+            --partitions 3 && exit 0
+          echo "Kafka not ready yet, retrying in 2s... ($i)"
+          sleep 2
+        done
+        echo "Failed to create topic link.events" >&2
+        exit 1
   clickhouse:
     image: clickhouse/clickhouse-server:24.7
     container_name: clickhouse

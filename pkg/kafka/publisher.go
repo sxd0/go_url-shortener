@@ -3,6 +3,8 @@ package kafka
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"log"
 	"strconv"
 	"strings"
 	"sync"
@@ -23,10 +25,10 @@ type PubConfig struct {
 	Brokers      []string
 	Topic        string
 	Acks         string // "0" | "1" | "all"
-	BatchSize    int 
+	BatchSize    int
 	BatchTimeout time.Duration
-	Compression  string 
-	QueueSize    int  
+	Compression  string
+	QueueSize    int
 	Workers      int
 }
 
@@ -81,6 +83,8 @@ func NewPublisher(brokers []string, topic string) *Publisher {
 	})
 }
 
+var ErrQueueFull = errors.New("kafka publish queue is full")
+
 func (p *Publisher) Publish(_ context.Context, ev Event) error {
 	data, err := json.Marshal(ev)
 	if err != nil {
@@ -95,10 +99,11 @@ func (p *Publisher) Publish(_ context.Context, ev Event) error {
 	select {
 	case p.ch <- msg:
 		PublishTotal.Inc()
+		return nil
 	default:
 		PublishDropped.Inc()
+		return ErrQueueFull
 	}
-	return nil
 }
 
 func (p *Publisher) worker() {
@@ -116,6 +121,8 @@ func (p *Publisher) worker() {
 func (p *Publisher) writeWithRetry(msg kafka.Message) {
 	const maxAttempts = 5
 	backoff := 50 * time.Millisecond
+	var lastErr error
+
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		err := p.w.WriteMessages(ctx, msg)
@@ -123,12 +130,15 @@ func (p *Publisher) writeWithRetry(msg kafka.Message) {
 		if err == nil {
 			return
 		}
+		lastErr = err
 		PublishErrors.Inc()
 		time.Sleep(backoff)
 		if backoff < 800*time.Millisecond {
 			backoff *= 2
 		}
 	}
+
+	log.Printf("[KAFKA][PUBLISH][GIVEUP] key=%s err=%v", string(msg.Key), lastErr)
 }
 
 func (p *Publisher) Close() error {
@@ -172,4 +182,3 @@ func parseCompression(s string) kafka.Compression {
 		return kafka.Snappy
 	}
 }
-
